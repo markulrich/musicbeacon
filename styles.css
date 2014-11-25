@@ -185,6 +185,10 @@ button {
         background-color: limegreen;
     }
 
+    .contact[data-available=false] {
+        display: none;
+    }
+
     .contact[data-available=false] .status {
         background-color: red;
     }

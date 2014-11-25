@@ -1,6 +1,6 @@
 function PeerTime(pubnub, mode) {
-    this.mode = typeof mode !== 'undefined' ? mode : 'moving-average';
-    if (this.mode == 'array') {
+    this.mode = typeof mode !== 'undefined' ? mode : 'exponential';
+    if (this.mode == 'total-average') {
         this.drifts = [];
     } else if (this.mode === 'moving-average') {
         this.drifts = [];
@@ -14,7 +14,6 @@ function PeerTime(pubnub, mode) {
     }
     this.pubnub = pubnub;
     this.numSyncs = 0;
-    this.syncDrift();
     var self = this;
     window.setInterval(function () {
         self.syncDrift();

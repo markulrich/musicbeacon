@@ -25,31 +25,45 @@ PeerTime.prototype = {
         var self = this;
         var startTime = new Date();
         this.pubnub.time(
-            function (pubnubTimeIn10thOfNs) {
+            function (serverTimeIn10thOfNs) {
+                if (serverTimeIn10thOfNs === 0) {
+                    console.error('Failed to return server.time result.');
+                    return;
+                }
                 var currTime = new Date();
                 var roundTripTime = currTime - startTime;
-                var HALF_SECOND = 500;
-                if (roundTripTime < 1 || roundTripTime > HALF_SECOND) {
-                    console.error('Connection is too slow to calculate drift, started at', startTime, 'but now', currTime);
+                var HALF_SECOND_IN_MS = 500;
+                if (roundTripTime < 1 || roundTripTime > HALF_SECOND_IN_MS) {
+                    if (roundTripTime < 1) {
+                        console.error('roundTripTime is', roundTripTime)
+                    } else {
+                        console.error('Connection is too slow to calculate drift, started at', startTime, 'but now', currTime)
+                    };
                     return;
                 }
                 var TENTHS_OF_NANOSECOND_PER_MILLISECOND = 10000;
-                var pubnubTimeMs = pubnubTimeIn10thOfNs / TENTHS_OF_NANOSECOND_PER_MILLISECOND;
+                var serverTimeMs = serverTimeIn10thOfNs / TENTHS_OF_NANOSECOND_PER_MILLISECOND;
                 var estimatedTimeFromServer = roundTripTime / 2;
-                var currDrift = pubnubTimeMs + estimatedTimeFromServer - currTime;
-                // TODO think about how to remove outliers.
+                var currDrift = serverTimeMs + estimatedTimeFromServer - currTime;
+                var ABOUT_ONE_YEAR_IN_MS = 3e10;
+                var ONE_MINUTE_IN_MS = 1000 * 60;
+                if (Math.abs(currDrift) > ABOUT_ONE_YEAR_IN_MS) {
+                    console.error('The drift is more than one year??? Says that serverTimeMs is',serverTimeMs);
+                }
                 if (self.mode === 'total') {
                     self.drifts.push(currDrift);
                 } else if (self.mode === 'moving') {
                     self.drifts.push(currDrift);
+                    self.drift = self.avgDrift();
                     if (self.drifts.length > self.window) {
                         self.drifts.splice(0, 1);
                     }
+                    self.drift = self.avgDrift();
                 } else if (self.mode === 'exponential') {
                     var percPrevToUse = Math.min(self.numSyncs / (self.numSyncs + 1.0), 0.9);
                     self.drift = percPrevToUse * self.drift + (1.0 - percPrevToUse) * currDrift;
                 } else if (self.mode === 'none') {
-                    // Do nothing.
+                    // Do nothing, already 0.
                 } else {
                     throw new Error('Invalid mode', self.mode);
                 }
@@ -70,20 +84,8 @@ PeerTime.prototype = {
 
     currTime: function () {
         var curr = new Date();
-        var drift;
-        if (this.mode === 'total') {
-            drift = this.avgDrift();
-        } else if (this.mode === 'moving') {
-            drift = this.avgDrift();
-        }  else if (this.mode === 'exponential') {
-            drift = this.drift;
-        } else if (this.mode === 'none') {
-            drift = 0;
-        } else {
-            throw new Error('Invalid mode', this.mode);
-        }
-        curr.setMilliseconds(curr.getMilliseconds() + drift);
-        console.log('Currtime with drift', drift, 'is', curr);
+        curr.setMilliseconds(curr.getMilliseconds() + this.drift);
+        console.log('Currtime with drift', this.drift, 'is', this.drift);
         return curr;
     }
 };

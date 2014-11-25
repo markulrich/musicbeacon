@@ -128,11 +128,11 @@
         //this.statusBlink(true);
       }
       else if (msg.action === protocol.ERR_REJECT) {
-        Utils.alert("Unable to communicate with " + this.id);
+        toastr.error("Unable to communicate with " + this.id);
         this.reset();
       }
       else if (msg.action === protocol.CANCEL) {
-        Utils.alert(this.id + " cancelled the share.");
+        toastr.error(this.id + " cancelled the share.");
         this.reset();
       }
     },
@@ -155,7 +155,7 @@
         this.fileInput.setAttribute("disabled", "disabled");
         $(this.fileInput).addClass("hidden");
         if (this.connected) {
-          Utils.alert(this.id + " has canceled the share.");
+          toastr.error(this.id + " has canceled the share.");
           this.reset();
         }
         var j = $(this.element);
@@ -191,7 +191,7 @@
         else if (data.action === protocol.DONE) {
           self.connected = false;
           self.reset();
-          Utils.alert("Share took " + ((Date.now() - self.shareStart) / 1000) + " seconds");
+          toastr.error("Share took " + ((Date.now() - self.shareStart) / 1000) + " seconds");
         }
       };
     },
@@ -203,7 +203,7 @@
         if (file) {
           var mbSize = file.size / (1024 * 1024);
           if (mbSize > MAX_FSIZE) {
-            Utils.alert("Due to browser memory limitations, files greater than " + MAX_FSIZE + " MiB are unsupported. Your file is " + mbSize.toFixed(2) + " MiB.");
+            toastr.error("Due to browser memory limitations, files greater than " + MAX_FSIZE + " MiB are unsupported. Your file is " + mbSize.toFixed(2) + " MiB.");
             var newInput = document.createElement("input");
             newInput.type = "file";
             newInput.className = "share";

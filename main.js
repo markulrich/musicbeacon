@@ -4,7 +4,6 @@
         window.location.protocol = "https:";
     }
 
-
     var HOSTED = window.location.protocol !== "file:";
     // Easier than comparing string literals
     var protocol = {
@@ -155,7 +154,7 @@
                     list.prepend($(template({ email: email, available: true })));
                     this.connections[email] = new Connection(email,
                       document.getElementById("contact-" + email),
-                      this.uuid, pubnub, peerTime);
+                      this.uuid, pubnub, peerTime, this.connections);
                     this.connections[email].handlePresence(msg);
                 }
                 else if (!USING_GOOGLE && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1 && msg.action === "join") {
@@ -167,7 +166,7 @@
                               );
                     this.connections[email] = new Connection(email,
                         document.getElementById("contact-" + email),
-                        this.uuid, pubnub, peerTime);
+                        this.uuid, pubnub, peerTime, this.connections);
                     this.connections[email].handlePresence(msg);
                     $(".contact-list").animate({ marginTop: "35px" }, 700);
                 }

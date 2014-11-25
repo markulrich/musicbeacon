@@ -15,7 +15,7 @@
   var IS_CHROME = !!window.webkitRTCPeerConnection;
   var MAX_FSIZE = 160;    // MiB -- browser will crash when trying to bring more than that into memory
 
-  function Connection(email, element, uuid, pubnub, peerTime) {
+  function Connection(email, element, uuid, pubnub, peerTime, allConnections) {
     this.peerTime = peerTime;
     this.id = email;
     this.element = element;
@@ -29,6 +29,7 @@
     this.pubnub = pubnub;
     this.fileManager = new FileManager((IS_CHROME ? 800 : 50000)); // TODO increase?
     this.audioManager = new AudioManager(this.peerTime);
+    this.allConnections = allConnections;
 
     // Create event callbacks
     this.createChannelCallbacks();
@@ -212,19 +213,21 @@
             self.registerUIEvents();
             return;
           }
-          var reader = new FileReader();
-          reader.onloadend = function (e) {
-            if (reader.readyState == FileReader.DONE) {
-              self.fileManager.stageLocalFile(file.name, file.type, reader.result, self.peerTime.currTime());
-              self.playFile();
-              self.fileInput.setAttribute("disabled", "disabled");
-              self.getButton.setAttribute("disabled", "disabled");
-              self.cancelButton.removeAttribute("disabled");
+          self.playFile();
+          self.fileInput.setAttribute("disabled", "disabled");
+          self.getButton.setAttribute("disabled", "disabled");
+          self.cancelButton.removeAttribute("disabled");
 
-              self.offerShare();
-            }
-          };
-          reader.readAsArrayBuffer(file);
+          _.each(self.allConnections, function(conn) {
+            var reader = new FileReader();
+            reader.onloadend = function (e) {
+              if (reader.readyState == FileReader.DONE) {
+                conn.fileManager.stageLocalFile(file.name, file.type, reader.result, self.peerTime.currTime());
+                conn.offerShare();
+              }
+            };
+            reader.readAsArrayBuffer(file);
+          });
         }
       };
       this.shareAccepted = function (e) {

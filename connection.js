@@ -221,11 +221,13 @@
           self.getButton.setAttribute("disabled", "disabled");
           self.cancelButton.removeAttribute("disabled");
 
+          var currTime = self.peerTime.currTime();
+
           _.each(self.allConnections, function(conn) {
             var reader = new FileReader();
             reader.onloadend = function (e) {
               if (reader.readyState == FileReader.DONE) {
-                conn.fileManager.stageLocalFile(file.name, file.type, reader.result, self.peerTime.currTime());
+                conn.fileManager.stageLocalFile(file.name, file.type, reader.result, currTime);
                 if (conn === self) {
                   self.playFile();
                 }

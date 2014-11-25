@@ -178,6 +178,9 @@
     createChannelCallbacks: function () {
       var self = this;
       this.onP2PMessage = function (data) {
+        if (!('action' in data)) {
+          debugger; //TODO
+        }
         console.log("P2P message: ", data.action);
         if (data.action === protocol.DATA) {
           self.fileManager.receiveChunk(data);
@@ -213,7 +216,7 @@
             self.registerUIEvents();
             return;
           }
-          self.playFile();
+
           self.fileInput.setAttribute("disabled", "disabled");
           self.getButton.setAttribute("disabled", "disabled");
           self.cancelButton.removeAttribute("disabled");
@@ -223,6 +226,9 @@
             reader.onloadend = function (e) {
               if (reader.readyState == FileReader.DONE) {
                 conn.fileManager.stageLocalFile(file.name, file.type, reader.result, self.peerTime.currTime());
+                if (conn === self) {
+                  self.playFile();
+                }
                 conn.offerShare();
               }
             };

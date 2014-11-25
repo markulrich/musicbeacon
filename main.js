@@ -47,6 +47,7 @@
                 });
             },
 
+            /** GOOGLE LOGIN, not in use
             obtainGoogleToken: function () {
                 var params = {
                     response_type: "token",
@@ -123,6 +124,7 @@
                 }
                 $.ajax(req).done(handleRes);
             },
+            */
 
             handleSignal: function (msg) {
                 var self = this;

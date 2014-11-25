@@ -1,5 +1,5 @@
 function PeerTime(pubnub, mode) {
-    this.mode = typeof mode !== 'undefined' ? mode : 'exponential';
+    this.mode = typeof mode !== 'undefined' ? mode : 'none';
     if (this.mode == 'total-average') {
         this.drifts = [];
     } else if (this.mode === 'moving-average') {

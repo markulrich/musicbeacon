@@ -1,7 +1,7 @@
 ﻿(function () {
-    var HOST = "markulrich.github.io"
+    var HOST = "markulrich.github.io";
     if (window.location.host == HOST && window.location.protocol != "https:") {
-        window.location.protocol = "https:"
+        window.location.protocol = "https:";
     }
 
 
@@ -46,6 +46,12 @@
                     callback: this.handleSignal.bind(this),
                     presence: this.handlePresence.bind(this)
                 });
+
+                window.onbeforeunload = function() {
+                    pubnub.unsubscribe({
+                        channel: protocol.CHANNEL
+                    });
+                };
             },
 
             /** GOOGLE LOGIN, not in use

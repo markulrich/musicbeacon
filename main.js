@@ -50,7 +50,7 @@
             obtainGoogleToken: function () {
                 var params = {
                     response_type: "token",
-                    client_id: "84873858196-sp4u8nbinq360u6pti0sqk745vu7547p.apps.googleusercontent.com", //TODO make work
+                    client_id: "84873858196-sp4u8nbinq360u6pti0sqk745vu7547p.apps.googleusercontent.com",
                     redirect_uri: window.location.origin + window.location.pathname,
                     scope: CONTACT_API_URL
                 };
@@ -165,64 +165,30 @@
             }
         };
         return new FSClient();
-    };
+    }
 
     var PUB_KEY = "pub-c-24cc8449-f45e-4bdf-97b5-c97bbb6479d0";
     var SUB_KEY = "sub-c-60fc9a74-6f61-11e4-b563-02ee2ddab7fe";
 
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+
+    function capitalize(s) {
+        return _.map(s.split(" "), function(w) {
+            return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+        }).join(" ");
+    }
+
     var client = createFSClient();
-
-    var confirm = $(".confirm-name");
-    var confirmArea = $(".confirm-name-area");
-    var input = $(".name-input");
-    var googleLogin = $("#google-login-button");
-
-    confirm.hover(function () {
-        confirm.stop();
-        confirm.animate({ color: "#669999" }, 300);
-    }, function () {
-        confirm.stop();
-        confirm.animate({ color: "white" }, 300);
-    });
-
-    confirm.click(function () {
-        $(".login-area").fadeOut();
-        client.localLogin(input.val().replace(/^\s\s*/, '').replace(/\s\s*$/, ''));
-    });
-
-    input.on("keyup", function (e) {
-        if (e.which === 13) {
-            confirm.click();
-        }
-    });
-
-    input.on("input", function () {
-        var curr = $(this).val(),
-            split = curr.split(/\s/);
-        for (var i = 0, len = split.length; i < len; i++) {
-            split[i] = split[i].replace(/\W/g, "");
-        }
-        curr = split.join(" ");
-        $(this).val(curr);
-        if (curr.length > 2 && curr.length < 20) {
-            if (curr.length >= 3 || curr.length <= 19) {
-                if (confirmArea.height() != 38) {
-                    confirm.fadeIn();
-                    confirmArea.animate({ height: "38px" }, 300);
-                }
-            }
-        }
-        else {
-            if (confirmArea.height() != 0) {
-                confirm.fadeOut();
-                confirmArea.animate({ height: "0px" }, 300);
-            }
-        }
-    });
-
-    googleLogin.click(function (event) {
-        client.obtainGoogleToken();
-        USING_GOOGLE = true;
+    var animals = $.get("/animals.json");
+    var adjectives = $.get("/adjectives.json");
+    $.when(animals, adjectives).done(function(animals, adjectives) {
+        animals = animals[0];
+        adjectives = adjectives[0];
+        var animal = animals[randomInt(0, animals.length)];
+        var adjective = adjectives[randomInt(0, adjectives.length)];
+        client.localLogin(capitalize(adjective + " " + animal));
     });
 
     // First, parse the query string

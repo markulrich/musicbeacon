@@ -186,6 +186,7 @@ button {
     }
 
     .contact[data-available=false] .status {
+        display: none;
         background-color: red;
     }
 

@@ -1,10 +1,10 @@
 function PeerTime(pubnub, mode) {
-    this.mode = typeof mode !== 'undefined' ? mode : 'total-average';
-    if (this.mode == 'total-average') {
+    this.mode = typeof mode !== 'undefined' ? mode : 'moving';
+    if (this.mode == 'total') {
         this.drifts = [];
-    } else if (this.mode === 'moving-average') {
+    } else if (this.mode === 'moving') {
         this.drifts = [];
-        this.window = 100;
+        this.window = 60;
     } else if (this.mode === 'exponential') {
         this.drift = 0;
     } else if (this.mode === 'none') {
@@ -23,18 +23,24 @@ function PeerTime(pubnub, mode) {
 PeerTime.prototype = {
     syncDrift: function () {
         var self = this;
-        var tripStartTime = new Date();
+        var startTime = new Date();
         this.pubnub.time(
-            function (timeIn10thOfNs) {
+            function (pubnubTimeIn10thOfNs) {
                 var currTime = new Date();
+                var roundTripTime = currTime - startTime;
+                var HALF_SECOND = 500;
+                if (roundTripTime < 1 || roundTripTime > HALF_SECOND) {
+                    console.error('Connection is too slow to calculate drift, started at', startTime, 'but now', currTime);
+                    return;
+                }
                 var TENTHS_OF_NANOSECOND_PER_MILLISECOND = 10000;
-                var timeMs = timeIn10thOfNs / TENTHS_OF_NANOSECOND_PER_MILLISECOND;
-                var estimatedTimeFromServer = (currTime - tripStartTime) / 2;
-                var currDrift = timeMs - estimatedTimeFromServer - currTime;
+                var pubnubTimeMs = pubnubTimeIn10thOfNs / TENTHS_OF_NANOSECOND_PER_MILLISECOND;
+                var estimatedTimeFromServer = roundTripTime / 2;
+                var currDrift = pubnubTimeMs + estimatedTimeFromServer - currTime;
                 // TODO think about how to remove outliers.
-                if (self.mode === 'total-average') {
+                if (self.mode === 'total') {
                     self.drifts.push(currDrift);
-                } else if (self.mode === 'moving-average') {
+                } else if (self.mode === 'moving') {
                     self.drifts.push(currDrift);
                     if (self.drifts.length > self.window) {
                         self.drifts.splice(0, 1);
@@ -42,7 +48,7 @@ PeerTime.prototype = {
                 } else if (self.mode === 'exponential') {
                     var percPrevToUse = Math.min(self.numSyncs / (self.numSyncs + 1.0), 0.9);
                     self.drift = percPrevToUse * self.drift + (1.0 - percPrevToUse) * currDrift;
-                } else if (this.mode === 'none') {
+                } else if (self.mode === 'none') {
                     // Do nothing.
                 } else {
                     throw new Error('Invalid mode', self.mode);
@@ -65,9 +71,9 @@ PeerTime.prototype = {
     currTime: function () {
         var curr = new Date();
         var drift;
-        if (this.mode === 'total-average') {
+        if (this.mode === 'total') {
             drift = this.avgDrift();
-        } else if (this.mode === 'moving-average') {
+        } else if (this.mode === 'moving') {
             drift = this.avgDrift();
         }  else if (this.mode === 'exponential') {
             drift = this.drift;

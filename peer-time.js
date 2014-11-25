@@ -4,7 +4,7 @@ function PeerTime(pubnub, mode) {
         this.drifts = [];
     } else if (this.mode === 'moving-average') {
         this.drifts = [];
-        this.window = 20;
+        this.window = 100;
     } else if (this.mode === 'exponential') {
         this.drift = 0;
     } else if (this.mode === 'none') {

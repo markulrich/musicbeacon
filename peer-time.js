@@ -1,9 +1,11 @@
 function PeerTime(pubnub, mode) {
-    this.mode = typeof mode !== 'undefined' ? mode : 'exponential';
+    this.mode = typeof mode !== 'undefined' ? mode : 'array';
     if (this.mode == 'array') {
         this.drifts = [];
-    } else if (this.mode == 'exponential') {
+    } else if (this.mode === 'exponential') {
         this.drift = 0;
+    } else if (this.mode === 'none') {
+        return;
     } else {
         throw new Error('Invalid mode', this.mode);
     }
@@ -28,11 +30,13 @@ PeerTime.prototype = {
                 var estimatedTimeFromServer = (currTime - tripStartTime) / 2;
                 var currDrift = timeMs - estimatedTimeFromServer - currTime;
                 // TODO think about how to remove outliers.
-                if (self.mode == 'array') {
+                if (self.mode === 'array') {
                     self.drifts.push(currDrift);
-                } else if (self.mode == 'exponential') {
+                } else if (self.mode === 'exponential') {
                     var percPrevToUse = Math.min(self.numSyncs / (self.numSyncs + 1.0), 0.9);
                     self.drift = percPrevToUse * self.drift + (1.0 - percPrevToUse) * currDrift;
+                } else if (this.mode === 'none') {
+                    // Do nothing.
                 } else {
                     throw new Error('Invalid mode', self.mode);
                 }
@@ -61,6 +65,8 @@ PeerTime.prototype = {
             drift = this.avgDrift();
         } else if (this.mode == 'exponential') {
             drift = this.drift;
+        } else if (this.mode === 'none') {
+            drift = 0;
         } else {
             throw new Error('Invalid mode', this.mode);
         }

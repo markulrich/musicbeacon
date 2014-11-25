@@ -1,7 +1,10 @@
 function PeerTime(pubnub, mode) {
-    this.mode = typeof mode !== 'undefined' ? mode : 'none';
+    this.mode = typeof mode !== 'undefined' ? mode : 'moving-average';
     if (this.mode == 'array') {
         this.drifts = [];
+    } else if (this.mode === 'moving-average') {
+        this.drifts = [];
+        this.window = 20;
     } else if (this.mode === 'exponential') {
         this.drift = 0;
     } else if (this.mode === 'none') {
@@ -30,8 +33,13 @@ PeerTime.prototype = {
                 var estimatedTimeFromServer = (currTime - tripStartTime) / 2;
                 var currDrift = timeMs - estimatedTimeFromServer - currTime;
                 // TODO think about how to remove outliers.
-                if (self.mode === 'array') {
+                if (self.mode === 'total-average') {
                     self.drifts.push(currDrift);
+                } else if (this.mode === 'moving-average') {
+                    self.drifts.push(currDrift);
+                    if (self.drifts.length > self.window) {
+                        self.drifts.splice(0, 1);
+                    }
                 } else if (self.mode === 'exponential') {
                     var percPrevToUse = Math.min(self.numSyncs / (self.numSyncs + 1.0), 0.9);
                     self.drift = percPrevToUse * self.drift + (1.0 - percPrevToUse) * currDrift;
@@ -46,7 +54,7 @@ PeerTime.prototype = {
     },
 
     avgDrift: function () {
-        if (this.mode !== 'array') {
+        if (this.mode !== 'total-average') {
             console.error('Called avgDrift using mode', this.mode);
         }
         var drift = 0;
@@ -61,9 +69,11 @@ PeerTime.prototype = {
     currTime: function () {
         var curr = new Date();
         var drift;
-        if (this.mode == 'array') {
+        if (this.mode === 'total-average') {
             drift = this.avgDrift();
-        } else if (this.mode == 'exponential') {
+        } else if (this.mode === 'moving-average') {
+            drift = this.avgDrift();
+        }  else if (this.mode === 'exponential') {
             drift = this.drift;
         } else if (this.mode === 'none') {
             drift = 0;

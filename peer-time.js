@@ -35,7 +35,7 @@ PeerTime.prototype = {
                 // TODO think about how to remove outliers.
                 if (self.mode === 'total-average') {
                     self.drifts.push(currDrift);
-                } else if (this.mode === 'moving-average') {
+                } else if (self.mode === 'moving-average') {
                     self.drifts.push(currDrift);
                     if (self.drifts.length > self.window) {
                         self.drifts.splice(0, 1);
@@ -54,9 +54,6 @@ PeerTime.prototype = {
     },
 
     avgDrift: function () {
-        if (this.mode !== 'total-average') {
-            console.error('Called avgDrift using mode', this.mode);
-        }
         var drift = 0;
         var len = this.drifts.length;
         for (var i = 0; i < len; i++) {

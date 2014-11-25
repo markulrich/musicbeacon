@@ -181,8 +181,8 @@
     }
 
     var client = createFSClient();
-    var animals = $.get("/animals.json");
-    var adjectives = $.get("/adjectives.json");
+    var animals = $.get("animals.json");
+    var adjectives = $.get("adjectives.json");
     $.when(animals, adjectives).done(function(animals, adjectives) {
         animals = animals[0];
         adjectives = adjectives[0];

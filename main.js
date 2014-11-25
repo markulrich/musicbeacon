@@ -42,6 +42,7 @@
 
                 pubnub.subscribe({
                     channel: protocol.CHANNEL,
+                    heartbeat: 10,
                     callback: this.handleSignal.bind(this),
                     presence: this.handlePresence.bind(this)
                 });

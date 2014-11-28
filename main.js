@@ -63,7 +63,6 @@
             },
 
             handlePresence: function (msg) {
-                console.log('handlePresence')
                 // Only care about presence messages from people in our Google contacts (if HOSTED)
                 var conn = this.connections[msg.uuid];
                 if (conn) {
@@ -82,10 +81,9 @@
                 else if (!USING_GOOGLE && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1 && msg.action === "join") {
                     var template = _.template($("#contact-template").html().trim());
                     var email = msg.uuid;
-                    console.log(msg.action == "join");
                     $(".contact-list").append(
-                                  $(template({ email: email, available: true }))
-                              );
+                        $(template({ email: email, available: true }))
+                    );
                     this.connections[email] = new Connection(email,
                         document.getElementById("contact-" + email),
                         this.uuid, pubnub, peerTime, this.connections);

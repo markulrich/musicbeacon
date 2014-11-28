@@ -34,7 +34,7 @@ PeerTime.prototype = {
         },
         moving: function(currDrift) {
             this.drifts.push(currDrift);
-            if (this.drifts.length > this.MOVING_WINDOW) drifts.shift();
+            if (this.drifts.length > this.MOVING_WINDOW) this.drifts.shift();
             this.drift = this.avgDrift();
         },
         exponential: function(currDrift) {
@@ -52,7 +52,6 @@ PeerTime.prototype = {
         this.pubnub.time(
             function (serverTimeTenthsNs) {
                 var serverTime = serverTimeTenthsNs / self.TENTHS_NS_PER_MS;
-
                 if (serverTime === 0) {
                     console.error('Failed to return server.time result');
                     return;
@@ -60,7 +59,6 @@ PeerTime.prototype = {
 
                 var currTime = new Date().getTime();
                 var roundTripTime = currTime - startTime;
-
                 if (roundTripTime > self.MAX_TIMEOUT) {
                     console.error('Latency too high to compute drift:', roundTripTime);
                     return;

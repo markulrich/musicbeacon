@@ -67,8 +67,6 @@ PeerTime.prototype = {
                 }
 
                 var currDrift = serverTime - currTime + roundTripTime / 2;
-                console.log('currDrift:', currDrift);
-
                 self.driftAlgos[self.mode].call(self, currDrift);
                 self.numSyncs++;
             }

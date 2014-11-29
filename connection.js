@@ -178,9 +178,7 @@
     createChannelCallbacks: function () {
       var self = this;
       this.onP2PMessage = function (data) {
-        if (!('action' in data)) {
-          debugger; //TODO
-        }
+        // TODO why is data sometimes undefined?
         console.log("P2P message: ", data.action);
         if (data.action === protocol.DATA) {
           self.fileManager.receiveChunk(data);

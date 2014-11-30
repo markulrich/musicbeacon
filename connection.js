@@ -10,13 +10,13 @@
     DATA: "data",
     DONE: "done",
     ERR_REJECT: "err-reject",
-    CANCEL: "cancel"
+    CANCEL: "cancel",
+    PLAY: "play"
   };
   var IS_CHROME = !!window.webkitRTCPeerConnection;
   var MAX_FSIZE = 160; // MB - browser memory limit
 
-  function Connection(email, element, uuid, pubnub, peerTime, allConnections) {
-    this.peerTime = peerTime;
+  function Connection(email, element, uuid, pubnub, peerTime, audioManager, allConnections) {
     this.id = email;
 
     // DEPRECATED; handle input through top bar
@@ -31,7 +31,8 @@
     this.uuid = uuid;
     this.pubnub = pubnub;
     this.fileManager = new FileManager((IS_CHROME ? 800 : 50000)); // TODO increase?
-    this.audioManager = new AudioManager(this.peerTime);
+    this.peerTime = peerTime;
+    this.audioManager = audioManager;
     this.allConnections = allConnections;
 
     // Create event callbacks
@@ -49,10 +50,23 @@
   };
 
   Connection.prototype = {
+    sendPlay: function (playTime) {
+      var msg = {
+        uuid: this.uuid,
+        target: this.id,
+        playTime: playTime,
+        action: protocol.PLAY,
+      };
+
+      this.pubnub.publish({
+        channel: protocol.CHANNEL,
+        message: msg
+      });
+    },
+
     offerShare: function () {
       console.log("Offering share...");
       this.isInitiator = true;
-
       this.connected = true;
       var msg = {
         uuid: this.uuid,
@@ -118,21 +132,16 @@
       if (msg.action === protocol.ANSWER) {
         this.p2pSetup();
       } else if (msg.action === protocol.OFFER) {
-        // Someone is ready to send file data. Let user opt-in to receive file data
-        //this.getButton.removeAttribute("disabled");
-        //this.cancelButton.removeAttribute("disabled");
-        //$(this.fileInput).addClass("hidden");
-
         this.fileManager.stageRemoteFile(msg.fName, msg.fType, msg.nChunks);
         this.shareAccepted();
-        //this.getButton.innerHTML = "Get: " + msg.fName;
-        //this.statusBlink(true);
       } else if (msg.action === protocol.ERR_REJECT) {
         toastr.error("Unable to communicate with " + this.id);
         this.reset();
       } else if (msg.action === protocol.CANCEL) {
         toastr.error(this.id + " cancelled the share.");
         this.reset();
+      } else if (msg.action === protocol.PLAY) {
+        this.audioManager.playFile(this.fileManager, msg.playTime);
       }
     },
 
@@ -238,16 +247,10 @@
       this.transferComplete = function () {
         console.log("Last chunk received.");
         self.send(JSON.stringify({ action: protocol.DONE }));
-        //self.fileManager.downloadFile();
-        self.playFile();
         self.connected = false;
         self.reset();
       };
 
-    },
-
-    playFile: function() {
-      this.audioManager.addClip(this.fileManager);
     },
 
     registerFileEvents: function () {

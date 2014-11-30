@@ -21,13 +21,19 @@
 
   function createFSClient() {
     var CONTACT_API_URL = "https://www.google.com/m8/feeds";
-    var pubnub, peerTime;
+    var pubnub;
+
     function FSClient() {
       this.connections = {};
       this.contactEmails = {};
 
+      // Initialized at localLogin
+      this.peerTime = null;
+      this.audioManager = null;
+
       this.uploadButton = $('#upload-button');
       this.fileInput = $('#upload-input');
+      this.playButton = $('#play-button');
       this.createUICallbacks();
       this.registerUIEvents();
     };
@@ -45,7 +51,7 @@
             return;
           }
 
-          // TODO: disable until finished
+          // TODO: disable uploading new files until finished
 
           var reader = new FileReader();
           reader.onloadend = function(e) {
@@ -56,15 +62,22 @@
             });
           }
           reader.readAsArrayBuffer(file);
-
-          console.log(file);
-        }
+        };
+        this.broadcastPlay = function(e) {
+          // TODO: make this select a specific file to play
+          if (!this.peerTime || !this.audioManager) return;
+          var playTime = this.peerTime.currTime() + 1000; // TODO: adjustable
+          _.each(self.connections, function (conn) {
+            conn.sendPlay(playTime);
+          });
+        };
       },
 
       registerUIEvents: function () {
         var self = this;
         this.uploadButton.click(function() { self.fileInput.click(); });
         this.fileInput.change(function() { self.filePicked(); });
+        this.playButton.click(function() { self.broadcastPlay(); });
       },
 
       localLogin: function (name) {
@@ -75,7 +88,8 @@
           uuid: this.uuid,
           ssl: true
         });
-        peerTime = new PeerTime(pubnub);
+        this.peerTime = new PeerTime(pubnub);
+        this.audioManager = new AudioManager(this.peerTime)
 
         $(".my-email").html(this.uuid);
 
@@ -107,18 +121,16 @@
         var conn = this.connections[msg.uuid];
         if (conn) {
           conn.handlePresence(msg);
-        }
-        else if (this.contactEmails[msg.uuid] && msg.action === "join") {
+        } else if (this.contactEmails[msg.uuid] && msg.action === "join") {
           var email = msg.uuid;
           var list = $(".contact-list");
           var template = _.template($("#contact-template").html().trim());
           list.prepend($(template({ email: email, available: true })));
           this.connections[email] = new Connection(email,
             document.getElementById("contact-" + email),
-            this.uuid, pubnub, peerTime, this.connections);
+            this.uuid, pubnub, this.peerTime, this.audioManager, this.connections);
           this.connections[email].handlePresence(msg);
-        }
-        else if (!USING_GOOGLE && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1 && msg.action === "join") {
+        } else if (!USING_GOOGLE && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1 && msg.action === "join") {
           var template = _.template($("#contact-template").html().trim());
           var email = msg.uuid;
           $(".contact-list").append(
@@ -126,7 +138,7 @@
           );
           this.connections[email] = new Connection(email,
             document.getElementById("contact-" + email),
-            this.uuid, pubnub, peerTime, this.connections);
+            this.uuid, pubnub, this.peerTime, this.audioManager, this.connections);
           this.connections[email].handlePresence(msg);
           $(".contact-list").animate({ marginTop: "35px" }, 700);
         }

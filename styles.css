@@ -124,7 +124,17 @@ button {
     float: left;
     margin-top: 18px;
     margin-left: 15px;
-    position: absolute;
+    position: relative;
+    left: 15px;
+    top: 0;
+}
+
+#play-button {
+    display: inline-block;
+    float: left;
+    margin-top: 18px;
+    margin-left: 15px;
+    position: relative;
     left: 15px;
     top: 0;
 }

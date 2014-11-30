@@ -21,10 +21,6 @@
 
     // DEPRECATED; handle input through top bar
     this.element = element;
-    this.fileInput = element.querySelector("input");
-    this.getButton = element.querySelector(".get");
-    this.cancelButton = element.querySelector(".cancel");
-
     this.progress = element.querySelector(".progress");
     this.connected = false;
     this.shareStart = null;
@@ -37,11 +33,7 @@
 
     // Create event callbacks
     this.createChannelCallbacks();
-    this.createUICallbacks();
     this.createFileCallbacks();
-
-    // Register UI events
-    this.registerUIEvents();
 
     // Progress bar init
     this.initProgress();
@@ -149,18 +141,11 @@
       console.log("Connection handling presence msg: ", msg);
       if (msg.action === "join") {
         this.available = true;
-        this.element.setAttribute("data-available", "true");
-        this.fileInput.removeAttribute("disabled");
-        $(this.fileInput).removeClass("hidden");
-
         var j = $(this.element);
         j.prependTo(j.parent());
       } else {
         this.available = false;
         this.statusBlink(false);
-        this.element.setAttribute("data-available", "false");
-        this.fileInput.setAttribute("disabled", "disabled");
-        $(this.fileInput).addClass("hidden");
         if (this.connected) {
           toastr.error(this.id + " has canceled the share.");
           this.reset();
@@ -201,15 +186,7 @@
           toastr.error("Share took " + ((Date.now() - self.shareStart) / 1000) + " seconds");
         }
       };
-    },
-
-    createUICallbacks: function () {
-      var self = this;
       this.shareAccepted = function (e) {
-        // Once we're receiving data, we can't initiate anymore streaming
-        self.getButton.setAttribute("disabled", "disabled");
-        self.fileInput.setAttribute("disabled", "disabled");
-
         self.answerShare();
         self.statusBlink(false);
         self.connected = true;
@@ -225,12 +202,6 @@
         });
         self.reset();
       };
-    },
-
-    registerUIEvents: function () {
-      this.fileInput.onchange = this.filePicked;
-      this.getButton.onclick = this.shareAccepted;
-      this.cancelButton.onclick = this.shareCancelled;
     },
 
     createFileCallbacks: function () {
@@ -285,17 +256,10 @@
     },
 
     reset: function () {
-      if (this.available) {
-        this.fileInput.removeAttribute("disabled");
-        $(this.fileInput).removeClass("hidden");
-      }
       this.statusBlink(false);
       this.updateProgress(0);
       this.fileManager.clear();
       this.fileInput.value = "";
-      this.getButton.setAttribute("disabled", "disabled");
-      this.cancelButton.setAttribute("disabled", "disabled");
-      this.getButton.innerHTML = "Get File";
       this.isInitiator = false;
       this.connected = false;
     }

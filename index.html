@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-<script type="text/template" id="contact-template">
+<script type="text/template" id="template">
     <div id="contact-<%= email %>" class="contact" data-available="<%= available %>">
         <div class="status"></div>
         <p class="email"><%= email %></p>
@@ -20,15 +20,19 @@
 </script>
 
 <div class="top-bar">
+    <h1 class="title">MusicBeacon</h1>
+</div>
+
+<div class="top-bar">
     <button id="upload-button" class="topbar-button">Upload</button>
     <input id="upload-input" type="file" class="share hidden" name="Upload">
     <button id="play-button" class="topbar-button">Play</button>
     <button id="delay-button" class="topbar-button">Delay (s)</button>
     <input type="range" id="delay-slider" class="topbar-button" value="0" min="0" max="5">
-    <h1 class="title">MusicBeacon</h1>
     <p class="my-email"></p>
 </div>
 
+<div class="file-list"></div>
 <div class="contact-list"></div>
 
 <a id="download"></a>

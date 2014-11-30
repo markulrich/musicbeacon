@@ -40,6 +40,7 @@
 
   Connection.prototype = {
     sendPlay: function (fileKey, playTime) {
+      console.log("Broadcasting play...");
       var msg = {
         uuid: this.uuid,
         target: this.id,

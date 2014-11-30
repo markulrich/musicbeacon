@@ -28,16 +28,23 @@
       this.connections = {};
       this.contactEmails = {};
 
-      // Initialized at localLogin
+      // Initialized after login
       this.uuid = null;
       this.peerTime = null;
       this.audioManager = null;
       this.fileStore = null;
 
-      this.uploadButton = $('#upload-button');
-      this.fileInput = $('#upload-input');
-      this.playButton = $('#play-button');
-      this.delaySlider = $('#delay-slider');
+      this.uploadButton = $("#upload-button");
+      this.fileInput = $("#upload-input");
+      this.playButton = $("#play-button");
+      this.delaySlider = $("#delay-slider");
+      this.fileList = $(".file-list");
+      this.contactList = $(".contact-list");
+      this.template = _.template($("#template").html().trim());
+
+      // File selection UI
+      this.selectableTemplate = null;
+      this.selected = null;
 
       this.createUICallbacks();
       this.registerUIEvents();
@@ -62,7 +69,6 @@
           var reader = new FileReader();
           reader.onloadend = function(e) {
             if (reader.readyState !== FileReader.DONE) return;
-
             var fileKey = self.fileStore.generateKey();
             self.fileStore.put(fileKey, file.name, file.type, reader.result);
 
@@ -74,14 +80,15 @@
           reader.readAsArrayBuffer(file);
         };
         this.broadcastPlay = function(fileKey) {
-          var delay = parseInt(self.delaySlider.attr('value')) * 1000;
-          var playTime = self.peerTime.currTime() + delay;
-
-          // TODO: file selection ui to pick a key
-          var fileKey;
-          for (key in self.fileStore.kvstore) {
-            fileKey = key;
+          var selectedFileElement = $(".file-list .selected");
+          if (selectedFileElement.length === 0) {
+            toastr.error("Please select a file.");
+            return;
           }
+          var fileKey = selectedFileElement.attr("file-key");
+
+          var delay = parseInt(self.delaySlider.attr("value")) * 1000;
+          var playTime = self.peerTime.currTime() + delay;
 
           self.audioManager.playFile(self.fileStore.get(fileKey).buffer, playTime);
           _.each(self.connections, function (conn) {
@@ -95,6 +102,15 @@
         this.uploadButton.click(function() { self.fileInput.click(); });
         this.fileInput.change(function() { self.uploadFile(); });
         this.playButton.click(function() { self.broadcastPlay(); });
+        this.selectableTemplate = function(input) {
+          var element = $(self.template(input));
+          element.click(function() {
+            if (self.selected) self.selected.removeClass("selected");
+            element.addClass("selected");
+            self.selected = element;
+          });
+          return element;
+        }
       },
 
       localLogin: function (name) {
@@ -108,7 +124,7 @@
         this.uuid = name;
         this.peerTime = new PeerTime(pubnub);
         this.audioManager = new AudioManager(this.peerTime);
-        this.fileStore = new FileStore(this);
+        this.fileStore = new FileStore(this.uuid, this.fileList, this.selectableTemplate);
 
         $(".my-email").html(this.uuid);
 
@@ -143,22 +159,15 @@
           return;
         }
 
-        var list = $(".contact-list");
-        var template = _.template($("#contact-template").html().trim());
-
-        if (this.contactEmails[msg.uuid] && msg.action === "join") {
-          list.prepend($(template({ email: email, available: true })));
+        if (msg.action === "join" &&
+            (this.contactEmails[msg.uuid] ||
+            (!USING_GOOGLE && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1))) {
+          var contactElement = $(this.template({ email: email, available: true }));
+          this.contactList.append(contactElement);
           this.connections[email] = new Connection(email, document.getElementById("contact-" + email),
             this.uuid, pubnub, this.audioManager, this.fileStore, this.connections);
           this.connections[email].handlePresence(msg);
-        } else if (!USING_GOOGLE
-                    && msg.uuid !== this.uuid
-                    && msg.uuid.indexOf("@") == -1 && msg.action === "join") {
-          list.append($(template({ email: email, available: true })));
-          this.connections[email] = new Connection(email, document.getElementById("contact-" + email),
-            this.uuid, pubnub, this.audioManager, this.fileStore, this.connections);
-          this.connections[email].handlePresence(msg);
-          list.animate({ marginTop: "35px" }, 700);
+          this.contactList.animate({ marginTop: "3%" }, 700);
         }
       }
     };

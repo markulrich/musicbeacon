@@ -14,7 +14,7 @@ AudioManager.prototype = {
       source.buffer = buffer;
       source.connect(self.audioCtx.destination);
       var diff = (self.peerTime.currTime() - playTime) / 1000;
-      console.log('Starting playback at', diff);
+      console.log("Starting playback at", diff);
       source.start(0, diff);
     });
   }

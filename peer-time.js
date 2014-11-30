@@ -4,15 +4,15 @@
  */
 
 function PeerTime(pubnub, mode) {
-  this.mode = mode || 'moving';
+  this.mode = mode || "exponential";
   this.drift = 0;
   this.drifts = [];
   this.pubnub = pubnub;
   this.numSyncs = 0;
 
   if (!(this.mode in this.driftAlgos)) {
-    throw new Error('Invalid mode', this.mode);
-    this.mode = 'none';
+    throw new Error("Invalid mode", this.mode);
+    this.mode = "none";
   }
 
   var self = this;
@@ -26,7 +26,7 @@ PeerTime.prototype = {
   MAX_TIMEOUT: 5000,
   TENTHS_NS_PER_MS: 10000,
   MOVING_WINDOW: 60,
-  EWMA_DECAY: 0.9,
+  EWMA_DECAY: 0.90,
 
   driftAlgos: {
     total: function(currDrift) {
@@ -53,14 +53,14 @@ PeerTime.prototype = {
       function (serverTimeTenthsNs) {
         var serverTime = serverTimeTenthsNs / self.TENTHS_NS_PER_MS;
         if (serverTime === 0) {
-          console.error('Failed to return server.time result');
+          console.error("Failed to return server.time result");
           return;
         }
 
         var currTime = new Date().getTime();
         var roundTripTime = currTime - startTime;
         if (roundTripTime > self.MAX_TIMEOUT) {
-          console.error('Latency too high to compute drift:', roundTripTime);
+          console.error("Latency too high to compute drift:", roundTripTime);
           return;
         }
 

@@ -88,6 +88,8 @@ button {
     font-size: 32px;
     margin: 0 auto;
     padding-top: 15px;
+    position: relative;
+    left: 1px;
     color: white;
     display: inline-block;
 }
@@ -114,7 +116,7 @@ button {
     float: right;
     padding-top: 18px;
     padding-right: 15px;
-    position: absolute;
+    position: relative;
     right: 15px;
     top: 0;
 }
@@ -133,15 +135,30 @@ button {
     margin-top: 21px;
 }
 
-.contact-list {
-    background-color: #262220;
-    margin-left: auto;
-    margin-right: auto;
-    width: 700px;
+.file-list {
+    background-color: #EEEBE4;
+    width: 46%;
     position: relative;
+    float: left;
+    margin-left: 3%;
+    margin-right: 1%;
+}
+
+    .file-list > .selected {
+        background-color: #574E4A;
+    }
+
+.contact-list {
+    background-color: #EEEBE4;
+    width: 46%;
+    position: relative;
+    float: right;
+    margin-left: 1%;
+    margin-right: 3%;
 }
 
 .contact {
+    background-color: #262220;
     border-bottom: solid 5px #EEEBE4;
     /*padding: 5px;*/
     height: 45px;
@@ -213,10 +230,7 @@ button {
         margin-right: 5px;
     }
 
-/**
-	Login area
- **/
-
+/* Login area */
 .login-area {
     display: none;
 }

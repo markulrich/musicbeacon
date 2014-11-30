@@ -1,4 +1,4 @@
-Protocol for A sharing to B
+Original protocol for A sharing to B
 
 A OFFER B
 B ANSWER A (no cancellation)
@@ -6,26 +6,15 @@ B P2P setup
 B request all chunks
 A P2P setup
 
-Protocol for A sharing to B with caching
 
-A OFFER B
-B ANSWER A (no cancellation)
-B P2P setup
-B request all chunks
-A P2P setup
-B caches data (localstorage?)
+Cooperative caching - SHARK-style leases?
+'Leader' is original uploader of file
+Contact leader for cache index
 
 
-Protocol for A fetching cached version of file
+TODO:
 
-A broadcasts LOOKUP fileId
-B responds with OFFER
-Proceed as usual
-
-
-Plan:
-
-Get centralized broadcast + play working
-Set up caching (in-memory)
-Set up cache lookup
-Move cache to localstorage
+DONE Get centralized broadcast + play working
+DONE Set up in-memory storage
+Set up on-demand download + async play, instead of needing a copy of the file to play
+Set up remote storage lookup (indexing)

@@ -1,10 +1,13 @@
 ﻿(function () {
   var HOST = "localhost:8000/index.html";
+  var HOSTED = window.location.protocol !== "file:";
+  var USING_GOOGLE = false;
+  var MAX_FSIZE = 160; // MB - browser memory limit
+
   if (window.location.host == HOST && window.location.protocol != "https:") {
     window.location.protocol = "https:";
   }
 
-  var HOSTED = window.location.protocol !== "file:";
   // Easier than comparing string literals
   var protocol = {
     CHANNEL: "get-my-file2",
@@ -16,8 +19,6 @@
     ERR_REJECT: "err-reject",
     CANCEL: "cancel"
   };
-  var USING_GOOGLE = false;
-  var MAX_FSIZE = 160; // MB - browser memory limit
 
   function createFSClient() {
     var CONTACT_API_URL = "https://www.google.com/m8/feeds";
@@ -28,8 +29,10 @@
       this.contactEmails = {};
 
       // Initialized at localLogin
+      this.uuid = null;
       this.peerTime = null;
       this.audioManager = null;
+      this.fileStore = null;
 
       this.uploadButton = $('#upload-button');
       this.fileInput = $('#upload-input');
@@ -41,7 +44,7 @@
     FSClient.prototype = {
       createUICallbacks: function () {
         var self = this;
-        this.filePicked = function(e) {
+        this.uploadFile = function() {
           var file = self.fileInput[0].files[0];
           if (!file) return;
 
@@ -51,24 +54,35 @@
             return;
           }
 
-          // TODO: disable uploading new files until finished
+          // TODO: disable or buffer uploading new files until finished
+          // TODO: upload to cooperative cache nodes only?
 
           var reader = new FileReader();
           reader.onloadend = function(e) {
             if (reader.readyState !== FileReader.DONE) return;
+
+            var fileKey = self.fileStore.generateKey();
+            self.fileStore.put(fileKey, file.name, file.type, reader.result);
+
             _.each(self.connections, function (conn) {
-              conn.fileManager.stageLocalFile(file.name, file.type, reader.result);
+              conn.fileManager.stageLocalFile(fileKey, file.name, file.type, reader.result);
               conn.offerShare();
             });
           }
           reader.readAsArrayBuffer(file);
         };
-        this.broadcastPlay = function(e) {
-          // TODO: make this select a specific file to play
-          if (!this.peerTime || !this.audioManager) return;
-          var playTime = this.peerTime.currTime() + 1000; // TODO: adjustable
+        this.broadcastPlay = function(fileKey) {
+          var playTime = self.peerTime.currTime() + 1000; // TODO: make this adjustable
+
+          // TODO: file selection ui to pick a key
+          var fileKey;
+          for (key in self.fileStore.kvstore) {
+            fileKey = key;
+          }
+
+          self.audioManager.playFile(self.fileStore.get(fileKey).buffer, playTime);
           _.each(self.connections, function (conn) {
-            conn.sendPlay(playTime);
+            conn.sendPlay(fileKey, playTime);
           });
         };
       },
@@ -76,20 +90,22 @@
       registerUIEvents: function () {
         var self = this;
         this.uploadButton.click(function() { self.fileInput.click(); });
-        this.fileInput.change(function() { self.filePicked(); });
+        this.fileInput.change(function() { self.uploadFile(); });
         this.playButton.click(function() { self.broadcastPlay(); });
       },
 
       localLogin: function (name) {
-        this.uuid = name;
         pubnub = PUBNUB.init({
           publish_key: PUB_KEY,
           subscribe_key: SUB_KEY,
-          uuid: this.uuid,
+          uuid: name,
           ssl: true
         });
+
+        this.uuid = name;
         this.peerTime = new PeerTime(pubnub);
-        this.audioManager = new AudioManager(this.peerTime)
+        this.audioManager = new AudioManager(this.peerTime);
+        this.fileStore = new FileStore(this);
 
         $(".my-email").html(this.uuid);
 
@@ -118,29 +134,28 @@
 
       handlePresence: function (msg) {
         // Only care about presence messages from people in our Google contacts (if HOSTED)
-        var conn = this.connections[msg.uuid];
-        if (conn) {
-          conn.handlePresence(msg);
-        } else if (this.contactEmails[msg.uuid] && msg.action === "join") {
-          var email = msg.uuid;
-          var list = $(".contact-list");
-          var template = _.template($("#contact-template").html().trim());
+        var email = msg.uuid;
+        if (this.connections[email]) {
+          this.connections[email].handlePresence(msg);
+          return;
+        }
+
+        var list = $(".contact-list");
+        var template = _.template($("#contact-template").html().trim());
+
+        if (this.contactEmails[msg.uuid] && msg.action === "join") {
           list.prepend($(template({ email: email, available: true })));
-          this.connections[email] = new Connection(email,
-            document.getElementById("contact-" + email),
-            this.uuid, pubnub, this.peerTime, this.audioManager, this.connections);
+          this.connections[email] = new Connection(email, document.getElementById("contact-" + email),
+            this.uuid, pubnub, this.audioManager, this.fileStore, this.connections);
           this.connections[email].handlePresence(msg);
-        } else if (!USING_GOOGLE && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1 && msg.action === "join") {
-          var template = _.template($("#contact-template").html().trim());
-          var email = msg.uuid;
-          $(".contact-list").append(
-            $(template({ email: email, available: true }))
-          );
-          this.connections[email] = new Connection(email,
-            document.getElementById("contact-" + email),
-            this.uuid, pubnub, this.peerTime, this.audioManager, this.connections);
+        } else if (!USING_GOOGLE
+                    && msg.uuid !== this.uuid
+                    && msg.uuid.indexOf("@") == -1 && msg.action === "join") {
+          list.append($(template({ email: email, available: true })));
+          this.connections[email] = new Connection(email, document.getElementById("contact-" + email),
+            this.uuid, pubnub, this.audioManager, this.fileStore, this.connections);
           this.connections[email].handlePresence(msg);
-          $(".contact-list").animate({ marginTop: "35px" }, 700);
+          list.animate({ marginTop: "35px" }, 700);
         }
       }
     };

@@ -23,7 +23,7 @@ function PeerTime(pubnub, mode) {
 
 PeerTime.prototype = {
   REFRESH: 2000,
-  MAX_TIMEOUT: 1500,
+  MAX_TIMEOUT: 5000,
   TENTHS_NS_PER_MS: 10000,
   MOVING_WINDOW: 60,
   EWMA_DECAY: 0.9,

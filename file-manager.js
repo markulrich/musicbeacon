@@ -1,7 +1,9 @@
-﻿function FileManager(chunkSize) {
+﻿var IS_CHROME = !!window.webkitRTCPeerConnection;
+var CHUNK_SIZE = (IS_CHROME ? 800 : 50000);
+
+function FileManager() {
+  this.fileKey = null;
   this.fileName = null;
-  this.buffer = null;
-  this.chunkSize = chunkSize;
   this.fileChunks = [];
   this.missingChunks = [];
   this.numRequested = 0;
@@ -14,21 +16,24 @@
 };
 
 FileManager.prototype = {
-  stageLocalFile: function (fName, fType, buffer) {
+  stageLocalFile: function (fKey, fName, fType, buffer) {
+    this.fileKey = fKey
     this.fileName = fName;
     this.fileType = fType;
-    this.buffer = buffer;
-    var nChunks = Math.ceil(buffer.byteLength / this.chunkSize);
+
+    var nChunks = Math.ceil(buffer.byteLength / CHUNK_SIZE);
     this.fileChunks = new Array(nChunks);
     var start;
     for (var i = 0; i < nChunks; i++) {
-      start = i * this.chunkSize;
-      this.fileChunks[i] = buffer.slice(start, start + this.chunkSize);
+      start = i * CHUNK_SIZE;
+      this.fileChunks[i] = buffer.slice(start, start + CHUNK_SIZE);
     }
+
     console.log("File data staged");
   },
 
-  stageRemoteFile: function (fName, fType, nChunks) {
+  stageRemoteFile: function (fKey, fName, fType, nChunks) {
+    this.fileKey = fKey
     this.fileName = fName;
     this.fileType = fType;
     this.fileChunks = [];
@@ -68,14 +73,10 @@ FileManager.prototype = {
     for (var id in this.missingChunks) {
       chunks.push(id);
       delete this.missingChunks[id];
-      if (++n >= this.requestMax) {
-        break;
-      }
+      if (++n >= this.requestMax) break;
     }
     this.numRequested += n;
-    if (!n) {
-      return;
-    }
+    if (!n) return;
 
     /***
      * This will act as a synchronous return when requestChunks
@@ -104,14 +105,6 @@ FileManager.prototype = {
     return (this.nChunksExpected == this.nChunksReceived);
   },
 
-  downloadFile: function () {
-    var blob = getBlob();
-    var link = document.querySelector("#download");
-    link.href = window.URL.createObjectURL(blob);
-    link.download = this.fileName;
-    link.click();
-  },
-
   loadArrayBuffer: function (onload) {
     var reader = new FileReader();
     reader.onload = function(e) {
@@ -120,8 +113,16 @@ FileManager.prototype = {
     reader.readAsArrayBuffer(this.getBlob());
   },
 
-  getBlob: function () {
-    return new Blob(this.fileChunks, { type: this.fileType });
+  getBlob: function() {
+    return new Blob(this.fileChunks, { type: this.type });
+  },
+
+  download: function () {
+    var blob = getBlob();
+    var link = document.querySelector("#download");
+    link.href = window.URL.createObjectURL(blob);
+    link.download = this.fileName;
+    link.click();
   },
 
   clear: function () {

@@ -13,22 +13,19 @@
     CANCEL: "cancel",
     PLAY: "play"
   };
-  var IS_CHROME = !!window.webkitRTCPeerConnection;
-  var MAX_FSIZE = 160; // MB - browser memory limit
 
-  function Connection(email, element, uuid, pubnub, peerTime, audioManager, allConnections) {
+  function Connection(email, element, uuid, pubnub, audioManager, fileStore, allConnections) {
     this.id = email;
 
-    // DEPRECATED; handle input through top bar
     this.element = element;
     this.progress = element.querySelector(".progress");
     this.connected = false;
     this.shareStart = null;
     this.uuid = uuid;
     this.pubnub = pubnub;
-    this.fileManager = new FileManager((IS_CHROME ? 800 : 50000)); // TODO increase?
-    this.peerTime = peerTime;
+    this.fileManager = new FileManager(); // TODO increase?
     this.audioManager = audioManager;
+    this.fileStore = fileStore
     this.allConnections = allConnections;
 
     // Create event callbacks
@@ -42,10 +39,11 @@
   };
 
   Connection.prototype = {
-    sendPlay: function (playTime) {
+    sendPlay: function (fileKey, playTime) {
       var msg = {
         uuid: this.uuid,
         target: this.id,
+        fileKey: fileKey,
         playTime: playTime,
         action: protocol.PLAY,
       };
@@ -63,6 +61,7 @@
       var msg = {
         uuid: this.uuid,
         target: this.id,
+        fKey: this.fileManager.fileKey,
         fName: this.fileManager.fileName,
         fType: this.fileManager.fileType,
         nChunks: this.fileManager.fileChunks.length,
@@ -124,7 +123,7 @@
       if (msg.action === protocol.ANSWER) {
         this.p2pSetup();
       } else if (msg.action === protocol.OFFER) {
-        this.fileManager.stageRemoteFile(msg.fName, msg.fType, msg.nChunks);
+        this.fileManager.stageRemoteFile(msg.fKey, msg.fName, msg.fType, msg.nChunks);
         this.shareAccepted();
       } else if (msg.action === protocol.ERR_REJECT) {
         toastr.error("Unable to communicate with " + this.id);
@@ -133,7 +132,7 @@
         toastr.error(this.id + " cancelled the share.");
         this.reset();
       } else if (msg.action === protocol.PLAY) {
-        this.audioManager.playFile(this.fileManager, msg.playTime);
+        this.audioManager.playFile(this.fileStore.get(msg.fileKey).buffer, msg.playTime);
       }
     },
 
@@ -151,7 +150,7 @@
           this.reset();
         }
         var j = $(this.element);
-        j.appendTo(j.parent());
+        j.hide().appendTo(j.parent());
       }
     },
 
@@ -207,7 +206,7 @@
     createFileCallbacks: function () {
       var self = this;
       this.chunkRequestReady = function (chunks) {
-        console.log("Chunks ready: ", chunks.length);
+        //console.log("Chunks ready: ", chunks.length);
         var req = JSON.stringify({
           action: protocol.REQUEST,
           ids: chunks,
@@ -217,11 +216,14 @@
       };
       this.transferComplete = function () {
         console.log("Last chunk received.");
-        self.send(JSON.stringify({ action: protocol.DONE }));
-        self.connected = false;
-        self.reset();
+        var fm = self.fileManager;
+        fm.loadArrayBuffer(function(buffer) {
+          self.fileStore.put(fm.fileKey, fm.fileName, fm.fileType, buffer);
+          self.send(JSON.stringify({ action: protocol.DONE }));
+          self.connected = false;
+          self.reset();
+        });
       };
-
     },
 
     registerFileEvents: function () {
@@ -259,11 +261,9 @@
       this.statusBlink(false);
       this.updateProgress(0);
       this.fileManager.clear();
-      this.fileInput.value = "";
       this.isInitiator = false;
       this.connected = false;
     }
-
   }
 
   return Connection;

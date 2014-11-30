@@ -106,20 +106,6 @@
       });
     },
 
-    statusBlink: function (on) {
-      var indicator = $(this.element.querySelector(".status"));
-      if (!on) {
-        clearInterval(this.blink);
-        indicator.removeAttr("style");
-        return;
-      }
-      var white = true;
-      this.blink = setInterval(function () {
-        indicator.css("background-color", (white ? "#EEEBE4" : "limegreen"));
-        white = !white;
-      }, 700);
-    },
-
     handleSignal: function (msg) {
       if (msg.action === protocol.ANSWER) {
         this.p2pSetup();
@@ -145,7 +131,6 @@
         j.prependTo(j.parent());
       } else {
         this.available = false;
-        this.statusBlink(false);
         if (this.connected) {
           toastr.error(this.id + " has canceled the share.");
           this.reset();
@@ -188,7 +173,6 @@
       };
       this.shareAccepted = function (e) {
         self.answerShare();
-        self.statusBlink(false);
         self.connected = true;
       };
       this.shareCancelled = function (e) {
@@ -259,7 +243,6 @@
     },
 
     reset: function () {
-      this.statusBlink(false);
       this.updateProgress(0);
       this.fileManager.clear();
       this.isInitiator = false;

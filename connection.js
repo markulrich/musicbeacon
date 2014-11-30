@@ -20,6 +20,7 @@
     this.element = element;
     this.progress = element.querySelector(".progress");
     this.connected = false;
+    this.p2pEstablished = false;
     this.shareStart = null;
     this.uuid = uuid;
     this.pubnub = pubnub;
@@ -128,7 +129,7 @@
       if (msg.action === "join") {
         this.available = true;
         var j = $(this.element);
-        j.prependTo(j.parent());
+        j.show().prependTo(j.parent());
       } else {
         this.available = false;
         if (this.connected) {
@@ -141,6 +142,9 @@
     },
 
     p2pSetup: function () {
+      if (this.p2pEstablished) return;
+      this.p2pEstablished = true;
+
       console.log("Setting up P2P...");
       this.shareStart = Date.now();
       this.pubnub.subscribe({

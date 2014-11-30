@@ -119,7 +119,7 @@ button {
     top: 0;
 }
 
-#upload-button {
+.topbar-button {
     display: inline-block;
     float: left;
     margin-top: 18px;
@@ -129,14 +129,8 @@ button {
     top: 0;
 }
 
-#play-button {
-    display: inline-block;
-    float: left;
-    margin-top: 18px;
-    margin-left: 15px;
-    position: relative;
-    left: 15px;
-    top: 0;
+#delay-slider {
+    margin-top: 21px;
 }
 
 .contact-list {

@@ -37,6 +37,8 @@
       this.uploadButton = $('#upload-button');
       this.fileInput = $('#upload-input');
       this.playButton = $('#play-button');
+      this.delaySlider = $('#delay-slider');
+
       this.createUICallbacks();
       this.registerUIEvents();
     };
@@ -72,7 +74,8 @@
           reader.readAsArrayBuffer(file);
         };
         this.broadcastPlay = function(fileKey) {
-          var playTime = self.peerTime.currTime() + 1000; // TODO: make this adjustable
+          var delay = parseInt(self.delaySlider.attr('value')) * 1000;
+          var playTime = self.peerTime.currTime() + delay;
 
           // TODO: file selection ui to pick a key
           var fileKey;

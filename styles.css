@@ -119,6 +119,16 @@ button {
     top: 0;
 }
 
+#upload-button {
+    display: inline-block;
+    float: left;
+    margin-top: 18px;
+    margin-left: 15px;
+    position: absolute;
+    left: 15px;
+    top: 0;
+}
+
 .contact-list {
     background-color: #262220;
     margin-left: auto;

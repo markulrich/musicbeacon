@@ -13,15 +13,18 @@
     CANCEL: "cancel"
   };
   var IS_CHROME = !!window.webkitRTCPeerConnection;
-  var MAX_FSIZE = 160;    // MiB -- browser will crash when trying to bring more than that into memory
+  var MAX_FSIZE = 160; // MB - browser memory limit
 
   function Connection(email, element, uuid, pubnub, peerTime, allConnections) {
     this.peerTime = peerTime;
     this.id = email;
+
+    // DEPRECATED; handle input through top bar
     this.element = element;
     this.fileInput = element.querySelector("input");
     this.getButton = element.querySelector(".get");
     this.cancelButton = element.querySelector(".cancel");
+
     this.progress = element.querySelector(".progress");
     this.connected = false;
     this.shareStart = null;
@@ -58,7 +61,6 @@
         fType: this.fileManager.fileType,
         nChunks: this.fileManager.fileChunks.length,
         action: protocol.OFFER,
-        playTime: this.fileManager.playTime
       };
 
       this.pubnub.publish({
@@ -114,25 +116,21 @@
 
     handleSignal: function (msg) {
       if (msg.action === protocol.ANSWER) {
-        console.log("THE OTHER PERSON IS READY");
         this.p2pSetup();
-      }
-      else if (msg.action === protocol.OFFER) {
+      } else if (msg.action === protocol.OFFER) {
         // Someone is ready to send file data. Let user opt-in to receive file data
         //this.getButton.removeAttribute("disabled");
         //this.cancelButton.removeAttribute("disabled");
         //$(this.fileInput).addClass("hidden");
 
-        this.fileManager.stageRemoteFile(msg.fName, msg.fType, msg.nChunks, new Date(msg.playTime));
+        this.fileManager.stageRemoteFile(msg.fName, msg.fType, msg.nChunks);
         this.shareAccepted();
         //this.getButton.innerHTML = "Get: " + msg.fName;
         //this.statusBlink(true);
-      }
-      else if (msg.action === protocol.ERR_REJECT) {
+      } else if (msg.action === protocol.ERR_REJECT) {
         toastr.error("Unable to communicate with " + this.id);
         this.reset();
-      }
-      else if (msg.action === protocol.CANCEL) {
+      } else if (msg.action === protocol.CANCEL) {
         toastr.error(this.id + " cancelled the share.");
         this.reset();
       }
@@ -148,8 +146,7 @@
 
         var j = $(this.element);
         j.prependTo(j.parent());
-      }
-      else {
+      } else {
         this.available = false;
         this.statusBlink(false);
         this.element.setAttribute("data-available", "false");
@@ -178,9 +175,6 @@
     createChannelCallbacks: function () {
       var self = this;
       this.onP2PMessage = function (data) {
-        if (!('action' in data)) {
-          debugger; //TODO
-        }
         console.log("P2P message: ", data.action);
         if (data.action === protocol.DATA) {
           self.fileManager.receiveChunk(data);
@@ -202,42 +196,6 @@
 
     createUICallbacks: function () {
       var self = this;
-      this.filePicked = function (e) {
-        var file = self.fileInput.files[0];
-        if (file) {
-          var mbSize = file.size / (1024 * 1024);
-          if (mbSize > MAX_FSIZE) {
-            toastr.error("Due to browser memory limitations, files greater than " + MAX_FSIZE + " MiB are unsupported. Your file is " + mbSize.toFixed(2) + " MiB.");
-            var newInput = document.createElement("input");
-            newInput.type = "file";
-            newInput.className = "share";
-            self.element.replaceChild(newInput, self.fileInput);
-            self.fileInput = newInput;
-            self.registerUIEvents();
-            return;
-          }
-
-          self.fileInput.setAttribute("disabled", "disabled");
-          self.getButton.setAttribute("disabled", "disabled");
-          self.cancelButton.removeAttribute("disabled");
-
-          var currTime = self.peerTime.currTime();
-
-          _.each(self.allConnections, function(conn) {
-            var reader = new FileReader();
-            reader.onloadend = function (e) {
-              if (reader.readyState == FileReader.DONE) {
-                conn.fileManager.stageLocalFile(file.name, file.type, reader.result, currTime);
-                if (conn === self) {
-                  self.playFile();
-                }
-                conn.offerShare();
-              }
-            };
-            reader.readAsArrayBuffer(file);
-          });
-        }
-      };
       this.shareAccepted = function (e) {
         // Once we're receiving data, we can't initiate anymore streaming
         self.getButton.setAttribute("disabled", "disabled");
@@ -262,7 +220,7 @@
 
     registerUIEvents: function () {
       this.fileInput.onchange = this.filePicked;
-      //this.getButton.onclick = this.shareAccepted;
+      this.getButton.onclick = this.shareAccepted;
       this.cancelButton.onclick = this.shareCancelled;
     },
 

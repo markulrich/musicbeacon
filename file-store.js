@@ -5,14 +5,14 @@
  * FileStore maintains an entry for EVERY file in the
  */
 
-function FileEntry(key, name, type, buffer, element, local) {
+function FileEntry(key, name, type, buffer, element, fixed, local) {
   this.key = key;
   this.name = name;
   this.type = type;
   this.buffer = buffer;
   this.element = element; // UI handler. Messy but effective
 
-  this.fixed = fixed; // Does the DHT protocol require this file to be stored at this node?
+  this.fixed = fixed; // Does the DHT protocol store the file at this node?
   this.local = local; // Is this file's buffer fixed/cached at this node?
 
   // For cache eviction
@@ -26,12 +26,10 @@ FileEntry.prototype = {
   }
 }
 
-function FileStore(uuid, fileList, template) {
-  this.uuid = uuid;
-
+function FileStore(client) {
   // UI elements
-  this.fileList = fileList;
-  this.template = template;
+  this.fileList = client.fileList;
+  this.template = client.selectableTemplate;
 
   this.counter = 0;
   this.kvstore = {};
@@ -39,7 +37,7 @@ function FileStore(uuid, fileList, template) {
 
 FileStore.prototype = {
   generateKey: function() {
-    return this.uuid + "-" + this.counter++;
+    return '0';
   },
 
   hasKey: function(key) {

@@ -41,6 +41,7 @@ FileManager.prototype = {
     this.numRequested = 0;
     this.nChunksReceived = 0;
     this.nChunksExpected = nChunks;
+
     // All chunks are missing to start
     for (var i = 0; i < nChunks; i++) {
       this.missingChunks[i] = true;

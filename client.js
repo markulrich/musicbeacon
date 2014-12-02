@@ -128,7 +128,7 @@
         this.uuid = name;
         this.peerTime = new PeerTime(pubnub);
         this.audioManager = new AudioManager(this.peerTime);
-        this.fileStore = new FileStore(this.uuid, this.fileList, this.selectableTemplate);
+        this.fileStore = new FileStore(this);
 
         $(".my-email").html(this.uuid);
 
@@ -168,7 +168,7 @@
           var contactElement = $(this.template({ email: email, available: true }));
           this.contactList.append(contactElement);
           this.connections[email] = new Connection(this, email, contactElement[0],
-            this.uuid, pubnub, this.audioManager, this.fileStore, this.connections);
+            pubnub);
           this.connections[email].handlePresence(msg);
           this.contactList.animate({ marginTop: "3%" }, 700);
         }
@@ -190,8 +190,8 @@
     var adjective = adjectives[Math.floor(Math.random() *  adjectives.length)];
     adjective = adjective[0].toUpperCase() + adjective.slice(1);
     client.localLogin(adjective + " " + animal);
-    window.client = client; // Expose for debug
   });
 
   $(".login-area").fadeIn();
+  window.client = client; // Expose for debug
 })();

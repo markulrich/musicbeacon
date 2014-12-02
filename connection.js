@@ -1,4 +1,4 @@
-﻿var Connection = (function wrap() {
+﻿var Connection = (function () {
   "use strict";
 
   var HOSTED = window.location.protocol !== "file:";
@@ -9,12 +9,10 @@
     REQUEST: "req-chunk",
     DATA: "data",
     DONE: "done",
-    ERR_REJECT: "err-reject",
-    CANCEL: "cancel",
     PLAY: "play"
   };
 
-  function Connection(client, email, element, uuid, pubnub, fileStore, allConnections) {
+  function Connection(client, email, element, pubnub) {
     this.client = client;
     this.id = email;
     this.element = element; // UI handler. Messy but effective
@@ -22,11 +20,10 @@
     this.connected = false;
     this.p2pEstablished = false;
     this.shareStart = null;
-    this.uuid = uuid;
+    this.uuid = client.uuid;
     this.pubnub = pubnub;
+    this.allConnections = client.allConnections;
     this.fileManager = new FileManager();
-    this.fileStore = fileStore
-    this.allConnections = allConnections;
 
     // Create event callbacks
     this.createChannelCallbacks();
@@ -40,7 +37,7 @@
 
   Connection.prototype = {
     sendPlay: function (fileKey, playTime) {
-      console.log("Broadcasting play...");
+      console.log("Broadcasting play for", fileKey);
       var msg = {
         uuid: this.uuid,
         target: this.id,
@@ -56,7 +53,7 @@
     },
 
     offerShare: function () {
-      console.log("Offering share...");
+      console.log("Offering share to", this.id);
       this.isInitiator = true;
       this.connected = true;
       var msg = {
@@ -76,7 +73,7 @@
     },
 
     answerShare: function () {
-      console.log("Answering share...");
+      console.log("Answering share from", this.id);
       // Tell other person to join the P2P channel
       this.pubnub.publish({
         channel: protocol.CHANNEL,
@@ -112,14 +109,10 @@
       } else if (msg.action === protocol.OFFER) {
         this.fileManager.stageRemoteFile(msg.fKey, msg.fName, msg.fType, msg.nChunks);
         this.shareAccepted();
-      } else if (msg.action === protocol.ERR_REJECT) {
-        toastr.error("Unable to communicate with " + this.id);
-        this.reset();
-      } else if (msg.action === protocol.CANCEL) {
-        toastr.error(this.id + " cancelled the share.");
-        this.reset();
       } else if (msg.action === protocol.PLAY) {
-        this.client.audioManager.playFile(this.fileStore.get(msg.fileKey).buffer, msg.playTime);
+        console.log("Received remote play for", msg.fileKey);
+        var buffer = this.client.fileStore.get(msg.fileKey).buffer;
+        this.client.audioManager.playFile(buffer, msg.playTime);
       }
     },
 
@@ -132,7 +125,7 @@
       } else {
         this.available = false;
         if (this.connected) {
-          toastr.error(this.id + " has canceled the share.");
+          console.log(this.id + " has canceled the share.");
           this.reset();
         }
         var j = $(this.element);
@@ -144,7 +137,7 @@
       if (this.p2pEstablished) return;
       this.p2pEstablished = true;
 
-      console.log("Setting up P2P...");
+      console.log("Setting up P2P with", this.id);
       this.shareStart = Date.now();
       this.pubnub.subscribe({
         channel: protocol.CHANNEL,
@@ -171,7 +164,7 @@
         else if (data.action === protocol.DONE) {
           self.connected = false;
           self.reset();
-          toastr.error("Share took " + ((Date.now() - self.shareStart) / 1000) + " seconds");
+          console.log("Share took " + ((Date.now() - self.shareStart) / 1000) + " seconds");
         }
       };
       this.shareAccepted = function (e) {
@@ -206,7 +199,7 @@
         console.log("Last chunk received.");
         var fm = self.fileManager;
         fm.loadArrayBuffer(function(buffer) {
-          self.fileStore.put(fm.fileKey, fm.fileName, fm.fileType, buffer);
+          self.client.fileStore.put(fm.fileKey, fm.fileName, fm.fileType, buffer);
           self.send(JSON.stringify({ action: protocol.DONE }));
           self.connected = false;
           self.reset();

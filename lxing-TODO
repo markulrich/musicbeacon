@@ -11,6 +11,9 @@ Cooperative caching - SHARK-style leases?
 'Leader' is original uploader of file
 Contact leader for cache index
 
+Discovery - every cache needs the full contents of the index
+Use a master?
+
 
 TODO:
 

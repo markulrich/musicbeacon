@@ -2,18 +2,22 @@
  * FileStore stores files locally for playback, and also responds to queries about
  * files in the local cache.
  *
- * Keys are generated as client.uuid + "-" + <autoinc counter>
- * e.g. "Quiet Dog-5"
+ * FileStore maintains an entry for EVERY file in the
  */
 
-function FileEntry(key, name, type, buffer, element) {
+function FileEntry(key, name, type, buffer, element, local) {
   this.key = key;
   this.name = name;
   this.type = type;
   this.buffer = buffer;
-  this.element = element;
+  this.element = element; // UI handler. Messy but effective
+
+  this.fixed = fixed; // Does the DHT protocol require this file to be stored at this node?
+  this.local = local; // Is this file's buffer fixed/cached at this node?
+
+  // For cache eviction
   this.lastModified = null;
-  this.touch(); // For eviction
+  this.touch();
 }
 
 FileEntry.prototype = {

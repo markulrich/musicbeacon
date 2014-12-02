@@ -1,4 +1,8 @@
-﻿(function () {
+﻿/**
+ * Main entry point for the application
+ */
+
+(function () {
   var HOST = "localhost:8000/index.html";
   var HOSTED = window.location.protocol !== "file:";
   var USING_GOOGLE = false;
@@ -159,12 +163,11 @@
           return;
         }
 
-        if (msg.action === "join" &&
-            (this.contactEmails[msg.uuid] ||
-            (!USING_GOOGLE && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1))) {
+        if (msg.action === "join" && !USING_GOOGLE
+            && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1) {
           var contactElement = $(this.template({ email: email, available: true }));
           this.contactList.append(contactElement);
-          this.connections[email] = new Connection(email, document.getElementById("contact-" + email),
+          this.connections[email] = new Connection(this, email, contactElement[0],
             this.uuid, pubnub, this.audioManager, this.fileStore, this.connections);
           this.connections[email].handlePresence(msg);
           this.contactList.animate({ marginTop: "3%" }, 700);
@@ -177,42 +180,18 @@
   var PUB_KEY = "pub-c-24cc8449-f45e-4bdf-97b5-c97bbb6479d0";
   var SUB_KEY = "sub-c-60fc9a74-6f61-11e4-b563-02ee2ddab7fe";
 
-  function randomInt(min, max) {
-    return Math.floor(Math.random() * (max - min)) + min;
-  }
-
-  function capitalize(s) {
-    return _.map(s.split(" "), function(w) {
-      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-    }).join(" ");
-  }
-
   var client = createFSClient();
   var animals = $.get("animals.json");
   var adjectives = $.get("adjectives.json");
   $.when(animals, adjectives).done(function(animals, adjectives) {
     animals = animals[0];
     adjectives = adjectives[0];
-    var animal = animals[randomInt(0, animals.length)];
-    var adjective = adjectives[randomInt(0, adjectives.length)];
-    client.localLogin(capitalize(adjective + " " + animal));
+    var animal = animals[Math.floor(Math.random() * animals.length)];
+    var adjective = adjectives[Math.floor(Math.random() *  adjectives.length)];
+    adjective = adjective[0].toUpperCase() + adjective.slice(1);
+    client.localLogin(adjective + " " + animal);
     window.client = client; // Expose for debug
   });
 
-  // First, parse the query string
-  var params = {}, queryString = location.hash.substring(1),
-    regex = /([^&=]+)=([^&]*)/g, m;
-  while (m = regex.exec(queryString)) {
-    params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
-  }
-
-  if (params.access_token) {
-    window.location.hash = "";
-    USING_GOOGLE = true;
-    client.getContacts(params.access_token);
-    return;
-  }
-  else {
-    $(".login-area").fadeIn();
-  }
+  $(".login-area").fadeIn();
 })();

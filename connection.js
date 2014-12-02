@@ -14,18 +14,17 @@
     PLAY: "play"
   };
 
-  function Connection(email, element, uuid, pubnub, audioManager, fileStore, allConnections) {
+  function Connection(client, email, element, uuid, pubnub, fileStore, allConnections) {
+    this.client = client;
     this.id = email;
-
-    this.element = element;
+    this.element = element; // UI handler. Messy but effective
     this.progress = element.querySelector(".progress");
     this.connected = false;
     this.p2pEstablished = false;
     this.shareStart = null;
     this.uuid = uuid;
     this.pubnub = pubnub;
-    this.fileManager = new FileManager(); // TODO increase?
-    this.audioManager = audioManager;
+    this.fileManager = new FileManager();
     this.fileStore = fileStore
     this.allConnections = allConnections;
 
@@ -120,7 +119,7 @@
         toastr.error(this.id + " cancelled the share.");
         this.reset();
       } else if (msg.action === protocol.PLAY) {
-        this.audioManager.playFile(this.fileStore.get(msg.fileKey).buffer, msg.playTime);
+        this.client.audioManager.playFile(this.fileStore.get(msg.fileKey).buffer, msg.playTime);
       }
     },
 

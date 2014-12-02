@@ -65,37 +65,45 @@
           var reader = new FileReader();
           reader.onloadend = function(e) {
             if (reader.readyState !== FileReader.DONE) return;
-            var fileKey = self.dht.generateFileKey(file);
+            var fileId = self.fileStore.generateFileId(file);
+            var fileKey = self.dht.hash(fileId);
 
             var replicas = self.dht.getReplicaIds(fileKey);
             var localReplica = (replicas.indexOf(self.uuid) >= 0);
-            self.fileStore.put(fileKey, file.name, file.type, reader.result, localReplica, true);
+            self.fileStore.put(fileId, file.name, file.type, reader.result, localReplica, true);
 
             console.log('Replicating file locally and to', replicas)
             _.each(replicas, function (replica) {
               if (replica == self.uuid) return;
               var conn = self.connections[replica];
-              conn.fileManager.stageLocalFile(fileKey, file.name, file.type, reader.result);
+              conn.fileManager.stageLocalFile(fileId, file.name, file.type, reader.result);
               conn.offerShare();
             });
           }
           reader.readAsArrayBuffer(file);
         };
-        this.broadcastPlay = function(fileKey) {
+        this.broadcastPlay = function() {
           var selectedFileElement = $(".file-list .selected");
           if (selectedFileElement.length === 0) {
             toastr.error("Please select a file.");
             return;
           }
-          var fileKey = selectedFileElement.attr("file-key");
+          var fileId = selectedFileElement.attr("file-id");
 
           var delay = parseInt(self.delaySlider.attr("value")) * 1000;
           var playTime = self.peerTime.currTime() + delay;
 
-          self.audioManager.playFile(self.fileStore.get(fileKey).buffer, playTime);
+          self.audioManager.playFile(self.fileStore.get(fileId).buffer, playTime);
           _.each(self.connections, function (conn) {
-            conn.sendPlay(fileKey, playTime);
+            if (!conn.available) return;
+            conn.sendPlay(fileId, playTime);
           });
+        };
+        this.handleJoin = function(nodeId) {
+          self.dht.addNode(nodeId);
+        };
+        this.handleLeave = function(nodeId) {
+          self.dht.removeNode(nodeId);
         };
       },
 
@@ -154,8 +162,12 @@
         }
       },
 
+      /**
+       * Handles connection creation. Heartbeats from existing connections are dispatched
+       * the connection object itself, with callbacks to this.handle(join|leave) to handle
+       * DHT maintenance.
+       */
       handlePresence: function (msg) {
-        // Only care about presence messages from people in our Google contacts (if HOSTED)
         var email = msg.uuid;
         if (this.connections[email]) {
           this.connections[email].handlePresence(msg);

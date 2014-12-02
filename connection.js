@@ -6,10 +6,11 @@
     CHANNEL: "get-my-file2",
     OFFER: "offer",
     ANSWER: "answer",
-    REQUEST: "req-chunk",
+    REQUEST_CHUNK: "req-chunk",
     DATA: "data",
     DONE: "done",
-    PLAY: "play"
+    PLAY: "play",
+    FILE_ENTRY: "file-entry"
   };
 
   // TODO: parallelize multiple filestreams
@@ -34,12 +35,16 @@
   };
 
   Connection.prototype = {
-    sendPlay: function (fileKey, playTime) {
-      console.log("Broadcasting play for", fileKey);
+    sendFileRecord: function (fileId, playTime) {
+
+    },
+
+    sendPlay: function (fileId, playTime) {
+      console.log("Broadcasting play for", fileId);
       var msg = {
         uuid: this.uuid,
         target: this.id,
-        fileKey: fileKey,
+        fileId: fileId,
         playTime: playTime,
         action: protocol.PLAY,
       };
@@ -51,13 +56,13 @@
     },
 
     offerShare: function () {
-      console.log("Offering share of", this.fileManager.fileKey, "to", this.id);
+      console.log("Offering share of", this.fileManager.fileId, "to", this.id);
       this.isInitiator = true;
       this.connected = true;
       var msg = {
         uuid: this.uuid,
         target: this.id,
-        fKey: this.fileManager.fileKey,
+        fID: this.fileManager.fileId,
         fName: this.fileManager.fileName,
         fType: this.fileManager.fileType,
         nChunks: this.fileManager.fileChunks.length,
@@ -71,7 +76,7 @@
     },
 
     answerShare: function () {
-      console.log("Answering share of", this.fileManager.fileKey, "from", this.id);
+      console.log("Answering share of", this.fileManager.fileId, "from", this.id);
       // Tell other person to join the P2P channel
       this.pubnub.publish({
         channel: protocol.CHANNEL,
@@ -105,15 +110,15 @@
       if (msg.action === protocol.ANSWER) {
         this.p2pSetup();
       } else if (msg.action === protocol.OFFER) {
-        if (this.client.fileStore.hasKey(msg.fKey)) return; // TODO: cancel the share
-        this.fileManager.stageRemoteFile(msg.fKey, msg.fName, msg.fType, msg.nChunks);
+        if (this.client.fileStore.hasId(msg.fID)) return; // TODO: cancel the share
+        this.fileManager.stageRemoteFile(msg.fID, msg.fName, msg.fType, msg.nChunks);
         this.shareAccepted();
       } else if (msg.action === protocol.PLAY) {
-        console.log("Received remote play for", msg.fileKey);
-        if (!this.client.fileStore.hasKey(msg.fileKey)) {
+        console.log("Received remote play for", msg.fileId);
+        if (!this.client.fileStore.hasId(msg.fileId)) {
           console.log("Not replicated here...") // TODO: fetch on demand
         }
-        var buffer = this.client.fileStore.get(msg.fileKey).buffer;
+        var buffer = this.client.fileStore.get(msg.fileId).buffer;
         this.client.audioManager.playFile(buffer, msg.playTime);
       }
     },
@@ -124,7 +129,7 @@
         this.available = true;
         var j = $(this.element);
         j.show().prependTo(j.parent());
-        this.client.dht.addNode(this.id);
+        this.client.handleJoin(this.id);
       } else {
         this.available = false;
         if (this.connected) {
@@ -154,11 +159,11 @@
     createChannelCallbacks: function () {
       var self = this;
       this.onP2PMessage = function (data) {
-        console.log("P2P message: ", data.action);
+        //console.log("P2P message: ", data.action);
         if (data.action === protocol.DATA) {
           self.fileManager.receiveChunk(data);
         }
-        else if (data.action === protocol.REQUEST) {
+        else if (data.action === protocol.REQUEST_CHUNK) {
           self.nChunksSent += data.ids.length;
           self.updateProgress(data.nReceived / self.fileManager.fileChunks.length);
           data.ids.forEach(function (id) {
@@ -193,7 +198,7 @@
       this.chunkRequestReady = function (chunks) {
         //console.log("Chunks ready: ", chunks.length);
         var req = JSON.stringify({
-          action: protocol.REQUEST,
+          action: protocol.REQUEST_CHUNK,
           ids: chunks,
           nReceived: self.fileManager.nChunksReceived
         });
@@ -203,7 +208,7 @@
         console.log("Last chunk received.");
         var fm = self.fileManager;
         fm.loadArrayBuffer(function(buffer) {
-          self.client.fileStore.put(fm.fileKey, fm.fileName, fm.fileType, buffer);
+          self.client.fileStore.put(fm.fileId, fm.fileName, fm.fileType, buffer);
           self.send(JSON.stringify({ action: protocol.DONE }));
           self.connected = false;
           self.reset();

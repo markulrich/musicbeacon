@@ -2,7 +2,7 @@
 var CHUNK_SIZE = (IS_CHROME ? 800 : 50000);
 
 function FileManager() {
-  this.fileKey = null;
+  this.fileId = null;
   this.fileName = null;
   this.fileChunks = [];
   this.missingChunks = [];
@@ -16,8 +16,8 @@ function FileManager() {
 };
 
 FileManager.prototype = {
-  stageLocalFile: function (fKey, fName, fType, buffer) {
-    this.fileKey = fKey
+  stageLocalFile: function (fID, fName, fType, buffer) {
+    this.fileId = fID;
     this.fileName = fName;
     this.fileType = fType;
 
@@ -32,8 +32,8 @@ FileManager.prototype = {
     console.log("File data staged");
   },
 
-  stageRemoteFile: function (fKey, fName, fType, nChunks) {
-    this.fileKey = fKey
+  stageRemoteFile: function (fID, fName, fType, nChunks) {
+    this.fileId = fID;
     this.fileName = fName;
     this.fileType = fType;
     this.fileChunks = [];

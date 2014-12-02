@@ -2,17 +2,18 @@
  * FileStore stores files locally for playback, and also responds to queries about
  * files in the local cache.
  *
- * FileStore maintains an entry for EVERY file in the
+ * FileStore contains a metadata entry for EVERY file in the distributed index, for discovery.
+ * However, not all file data is stored locally.
  */
 
-function FileEntry(key, name, type, buffer, dhtLocked, local, element) {
-  this.key = key;
+function FileEntry(id, name, type, buffer, pinned, local, element) {
+  this.id = id;
   this.name = name;
   this.type = type;
   this.buffer = buffer;
-  this.element = element; // UI handler. Messy but effective
+  this.element = element;     // UI handler. Messy but effective
 
-  this.dhtLocked = dhtLocked; // Does the DHT protocol use this node as a replica for the file?
+  this.pinned = pinned;       // Does the DHT protocol use this node as a replica for the file?
   this.local = local;         // Is this file's buffer fixed/cached at this node?
 
   // For cache eviction
@@ -31,37 +32,42 @@ function FileStore(client) {
   this.fileList = client.fileList;
   this.template = client.selectableTemplate;
 
+  this.fileSuffix = _.map(client.uuid.split(" "), function(t) { return t.substr(0,3) }).join("");
   this.counter = 0;
   this.kvstore = {};
 }
 
 FileStore.prototype = {
-  hasKey: function(key) {
-    return key in this.kvstore;
+  generateFileId: function() {
+    return (this.counter++) + this.fileSuffix;
   },
 
-  get: function(key) {
-    if (this.hasKey(key)) this.kvstore[key].touch();
-    return this.kvstore[key];
+  hasId: function(id) {
+    return id in this.kvstore;
   },
 
-  put: function(key, name, type, buffer, dhtLocked, local) {
+  get: function(id) {
+    if (this.hasId(id)) this.kvstore[id].touch();
+    return this.kvstore[id];
+  },
+
+  put: function(id, name, type, buffer, pinned, local) {
     var fileElement;
-    if (this.hasKey(key)) {
-      fileElement = this.kvstore[key].element;
+    if (this.hasId(id)) {
+      fileElement = this.kvstore[id].element;
     } else {
       fileElement = $(this.template({ email: name, available: true }));
-      fileElement.attr("file-key", key);
+      fileElement.attr("file-id", id);
       this.fileList.append(fileElement);
       this.fileList.animate({ marginTop: "3%" }, 700);
     }
-    this.kvstore[key] = new FileEntry(key, name, type, buffer, dhtLocked, local, fileElement);
+    this.kvstore[id] = new FileEntry(id, name, type, buffer, pinned, local, fileElement);
   },
 
-  delete: function(key) {
-    if (!this.hasKey(key)) return;
-    var entry = this.kvstore[key];
+  delete: function(id) {
+    if (!this.hasId(id)) return;
+    var entry = this.kvstore[id];
     entry.element.hide();
-    delete kvstore[entry.key];
+    delete kvstore[entry.id];
   }
 }

@@ -3,9 +3,10 @@
  * translations from node uuids to DHT keyspace and from fileKeys in DHT keyspace to the
  * designated replica uuids.
  *
- * We distinguish between key and uuid.
- *   uuid is the human-readable handle for nodes
- *   key refers to a location on the DHT keyspace
+ * We distinguish between ids and keys.
+ *   uuids are human-readable handles for nodes
+ *   fileIds are human-readable handles for files
+ *   key refers to a location on the DHT keyspace and is a hashed id.
  */
 var DHT = (function () {
   var DHT_N = 10000;        // Keyspace max
@@ -26,10 +27,6 @@ var DHT = (function () {
       return _.reduce(str, function(h, c) {
         return (h * 37 + c.charCodeAt(0)) % DHT_N;
       }, 5381);
-    },
-
-    generateFileKey: function(file) {
-      return this.hash(file.name + this.uuid);
     },
 
     addNode: function(nodeId) {

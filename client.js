@@ -15,13 +15,7 @@
   // Easier than comparing string literals
   var protocol = {
     CHANNEL: "get-my-file2",
-    OFFER: "offer",
-    ANSWER: "answer",
-    REQUEST: "req-chunk",
-    DATA: "data",
-    DONE: "done",
-    ERR_REJECT: "err-reject",
-    CANCEL: "cancel"
+    // Other primitives in connection.js - avoid duplication
   };
 
   function createFSClient() {
@@ -37,6 +31,7 @@
       this.peerTime = null;
       this.audioManager = null;
       this.fileStore = null;
+      this.dht = null;
 
       this.uploadButton = $("#upload-button");
       this.fileInput = $("#upload-input");
@@ -67,16 +62,19 @@
             return;
           }
 
-          // TODO: disable or buffer uploading new files until finished
-          // TODO: upload to cooperative cache nodes only?
-
           var reader = new FileReader();
           reader.onloadend = function(e) {
             if (reader.readyState !== FileReader.DONE) return;
-            var fileKey = self.fileStore.generateKey();
-            self.fileStore.put(fileKey, file.name, file.type, reader.result);
+            var fileKey = self.dht.generateFileKey(file);
 
-            _.each(self.connections, function (conn) {
+            var replicas = self.dht.getReplicaIds(fileKey);
+            var localReplica = (replicas.indexOf(self.uuid) >= 0);
+            self.fileStore.put(fileKey, file.name, file.type, reader.result, localReplica, true);
+
+            console.log('Replicating file locally and to', replicas)
+            _.each(replicas, function (replica) {
+              if (replica == self.uuid) return;
+              var conn = self.connections[replica];
               conn.fileManager.stageLocalFile(fileKey, file.name, file.type, reader.result);
               conn.offerShare();
             });
@@ -127,8 +125,9 @@
 
         this.uuid = name;
         this.peerTime = new PeerTime(pubnub);
-        this.audioManager = new AudioManager(this.peerTime);
+        this.audioManager = new AudioManager(this);
         this.fileStore = new FileStore(this);
+        this.dht = new DHT(this);
 
         $(".my-email").html(this.uuid);
 
@@ -167,8 +166,7 @@
             && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1) {
           var contactElement = $(this.template({ email: email, available: true }));
           this.contactList.append(contactElement);
-          this.connections[email] = new Connection(this, email, contactElement[0],
-            pubnub);
+          this.connections[email] = new Connection(this, email, contactElement[0], pubnub);
           this.connections[email].handlePresence(msg);
           this.contactList.animate({ marginTop: "3%" }, 700);
         }

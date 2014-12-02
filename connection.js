@@ -12,26 +12,24 @@
     PLAY: "play"
   };
 
+  // TODO: parallelize multiple filestreams
+
   function Connection(client, email, element, pubnub) {
     this.client = client;
-    this.id = email;
-    this.element = element; // UI handler. Messy but effective
+    this.uuid = client.uuid;    // Local id
+    this.id = email;            // Target id
+    this.element = element;     // UI handler. Messy but effective
     this.progress = element.querySelector(".progress");
     this.connected = false;
     this.p2pEstablished = false;
     this.shareStart = null;
-    this.uuid = client.uuid;
     this.pubnub = pubnub;
     this.allConnections = client.allConnections;
     this.fileManager = new FileManager();
 
-    // Create event callbacks
     this.createChannelCallbacks();
     this.createFileCallbacks();
-
-    // Progress bar init
     this.initProgress();
-
     this.registerFileEvents();
   };
 
@@ -53,7 +51,7 @@
     },
 
     offerShare: function () {
-      console.log("Offering share to", this.id);
+      console.log("Offering share of", this.fileManager.fileKey, "to", this.id);
       this.isInitiator = true;
       this.connected = true;
       var msg = {
@@ -73,7 +71,7 @@
     },
 
     answerShare: function () {
-      console.log("Answering share from", this.id);
+      console.log("Answering share of", this.fileManager.fileKey, "from", this.id);
       // Tell other person to join the P2P channel
       this.pubnub.publish({
         channel: protocol.CHANNEL,
@@ -111,6 +109,9 @@
         this.shareAccepted();
       } else if (msg.action === protocol.PLAY) {
         console.log("Received remote play for", msg.fileKey);
+        if (!this.client.fileStore.hasKey(msg.fileKey)) {
+          console.log("Not replicated here...") // TODO
+        }
         var buffer = this.client.fileStore.get(msg.fileKey).buffer;
         this.client.audioManager.playFile(buffer, msg.playTime);
       }
@@ -122,6 +123,7 @@
         this.available = true;
         var j = $(this.element);
         j.show().prependTo(j.parent());
+        this.client.dht.addNode(this.id);
       } else {
         this.available = false;
         if (this.connected) {
@@ -130,6 +132,7 @@
         }
         var j = $(this.element);
         j.hide().appendTo(j.parent());
+        this.client.dht.removeNode(this.id);
       }
     },
 

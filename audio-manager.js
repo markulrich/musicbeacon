@@ -1,5 +1,5 @@
-function AudioManager(peerTime) {
-  this.peerTime = peerTime;
+function AudioManager(client) {
+  this.peerTime = client.peerTime;
   this.clips = {};
 }
 

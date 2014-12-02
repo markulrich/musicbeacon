@@ -5,15 +5,15 @@
  * FileStore maintains an entry for EVERY file in the
  */
 
-function FileEntry(key, name, type, buffer, element, fixed, local) {
+function FileEntry(key, name, type, buffer, dhtLocked, local, element) {
   this.key = key;
   this.name = name;
   this.type = type;
   this.buffer = buffer;
   this.element = element; // UI handler. Messy but effective
 
-  this.fixed = fixed; // Does the DHT protocol store the file at this node?
-  this.local = local; // Is this file's buffer fixed/cached at this node?
+  this.dhtLocked = dhtLocked; // Does the DHT protocol use this node as a replica for the file?
+  this.local = local;         // Is this file's buffer fixed/cached at this node?
 
   // For cache eviction
   this.lastModified = null;
@@ -36,10 +36,6 @@ function FileStore(client) {
 }
 
 FileStore.prototype = {
-  generateKey: function() {
-    return '0';
-  },
-
   hasKey: function(key) {
     return key in this.kvstore;
   },
@@ -49,7 +45,7 @@ FileStore.prototype = {
     return this.kvstore[key];
   },
 
-  put: function(key, name, type, buffer) {
+  put: function(key, name, type, buffer, dhtLocked, local) {
     var fileElement;
     if (this.hasKey(key)) {
       fileElement = this.kvstore[key].element;
@@ -59,7 +55,7 @@ FileStore.prototype = {
       this.fileList.append(fileElement);
       this.fileList.animate({ marginTop: "3%" }, 700);
     }
-    this.kvstore[key] = new FileEntry(key, name, type, buffer, fileElement);
+    this.kvstore[key] = new FileEntry(key, name, type, buffer, dhtLocked, local, fileElement);
   },
 
   delete: function(key) {

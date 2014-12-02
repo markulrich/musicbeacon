@@ -9,7 +9,7 @@
  */
 var DHT = (function () {
   var DHT_N = 10000;        // Keyspace max
-  var DHT_R = 1;            // Replication factor
+  var DHT_R = 2;            // Replication factor
 
   function DHT(client) {
     this.uuid = client.uuid;

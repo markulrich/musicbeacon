@@ -72,8 +72,6 @@
 
     answerShare: function () {
       console.log("Answering share of", this.fileManager.fileKey, "from", this.id);
-      if (this.fileManager.hasKey(fileKey)) return;
-
       // Tell other person to join the P2P channel
       this.pubnub.publish({
         channel: protocol.CHANNEL,
@@ -107,12 +105,13 @@
       if (msg.action === protocol.ANSWER) {
         this.p2pSetup();
       } else if (msg.action === protocol.OFFER) {
+        if (this.client.fileStore.hasKey(msg.fKey)) return; // TODO: cancel the share
         this.fileManager.stageRemoteFile(msg.fKey, msg.fName, msg.fType, msg.nChunks);
         this.shareAccepted();
       } else if (msg.action === protocol.PLAY) {
         console.log("Received remote play for", msg.fileKey);
         if (!this.client.fileStore.hasKey(msg.fileKey)) {
-          console.log("Not replicated here...") // TODO
+          console.log("Not replicated here...") // TODO: fetch on demand
         }
         var buffer = this.client.fileStore.get(msg.fileKey).buffer;
         this.client.audioManager.playFile(buffer, msg.playTime);

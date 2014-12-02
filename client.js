@@ -45,12 +45,12 @@
       this.selectableTemplate = null;
       this.selected = null;
 
-      this.createUICallbacks();
+      this.createCallbacks();
       this.registerUIEvents();
     };
 
     FSClient.prototype = {
-      createUICallbacks: function () {
+      createCallbacks: function () {
         var self = this;
         this.uploadFile = function() {
           var file = self.fileInput[0].files[0];

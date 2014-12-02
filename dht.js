@@ -62,7 +62,7 @@ var DHT = (function () {
       } else {
         var self = this;
         var start = this.getSuccessorIndex(key);
-        var overflow = DHT_R - (this.nodes.length) - start;
+        var overflow = Math.max(DHT_R - (this.nodes.length - start), 0);
         replicaKeys = this.nodes.slice(start, DHT_R).concat(this.nodes.slice(0, overflow));
       }
       return _.map(replicaKeys, function(replicaKey) { return self.reverseMap[replicaKey]; });

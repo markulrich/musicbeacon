@@ -72,6 +72,8 @@
 
     answerShare: function () {
       console.log("Answering share of", this.fileManager.fileKey, "from", this.id);
+      if (this.fileManager.hasKey(fileKey)) return;
+
       // Tell other person to join the P2P channel
       this.pubnub.publish({
         channel: protocol.CHANNEL,

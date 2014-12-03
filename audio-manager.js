@@ -1,14 +1,25 @@
 function AudioManager(client) {
   this.peerTime = client.peerTime;
-  this.clips = {};
+  this.playBuffer = {};
 }
 
 AudioManager.prototype = {
   audioCtx: new (window.AudioContext || window.webkitAudioContext)(),
 
-  playFile: function(encodedBuffer, playTime) {
+  bufferPlay: function(fileId, playTime) {
+    this.playBuffer(fileId, playTime);
+  },
+
+  onFileReceived: function(fileId, buffer) {
+    if (fileId in this.playBuffer) {
+      this.playFile(fileId, buffer, this.playBuffer[fileId]);
+    }
+  },
+
+  playFile: function(fileId, encodedBuffer, playTime) {
     var self = this;
     var source = this.audioCtx.createBufferSource();
+    delete this.playBuffer[fileId];
 
     self.audioCtx.decodeAudioData(encodedBuffer, function (buffer) {
       source.buffer = buffer;

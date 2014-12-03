@@ -130,6 +130,7 @@
 
     handleSignal: function (msg) {
       if (msg.action === protocol.OFFER) {
+        console.log("Received remote offer for", msg.fileId);
         if (this.client.fileStore.hasLocalId(msg.fileId)) {
           this.cancelShare(msg.fileId);
         } else {
@@ -145,12 +146,13 @@
       } else if (msg.action === protocol.PLAY) {
         console.log("Received remote play for", msg.fileId);
         if (!this.client.fileStore.hasLocalId(msg.fileId)) {
-          // TODO: fetch and buffer the play command
-          console.log("Not replicated here...")
-          return;
+          console.log("Not replicated here...fetching data for", msg.fileId)
+          this.client.audioManager.bufferPlay(msg.fileId, msg.playTime);
+          this.client.requestFile(msg.fileId);
+        } else {
+          var buffer = this.client.fileStore.get(msg.fileId).buffer;
+          this.client.audioManager.playFile(msg.fileId, buffer, msg.playTime);
         }
-        var buffer = this.client.fileStore.get(msg.fileId).buffer;
-        this.client.audioManager.playFile(buffer, msg.playTime);
       } else if (msg.action === protocol.FILE_ENTRY) {
         if (this.client.fileStore.hasId(msg.fileId)) return;
         this.client.fileStore.put(msg.fileId, msg.fileName, null, null, false);

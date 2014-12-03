@@ -6,6 +6,7 @@
     CHANNEL: "get-my-file2",
     OFFER: "offer",
     ANSWER: "answer",
+    CANCEL: "cancel",
     REQUEST_CHUNK: "req-chunk",
     DATA: "data",
     DONE: "done",
@@ -13,25 +14,21 @@
     FILE_ENTRY: "file-entry"
   };
 
-  // TODO: parallelize multiple filestreams
-
   function Connection(client, email, element, pubnub) {
     this.client = client;
     this.uuid = client.uuid;    // Local id
     this.id = email;            // Target id
     this.element = element;     // UI handler. Messy but effective
     this.progress = element.querySelector(".progress");
-    this.connected = false;
     this.p2pEstablished = false;
     this.shareStart = null;
     this.pubnub = pubnub;
     this.allConnections = client.allConnections;
-    this.fileManager = new FileManager();
+    this.fileStreams = {};
 
     this.createChannelCallbacks();
     this.createFileCallbacks();
     this.initProgress();
-    this.registerFileEvents();
   };
 
   Connection.prototype = {
@@ -63,37 +60,55 @@
       });
     },
 
-    offerShare: function () {
-      console.log("Offering share of", this.fileManager.fileId, "to", this.id);
-      this.isInitiator = true;
-      this.connected = true;
+    offerShare: function (fileId, fileName, fileType, buffer, pinned) {
+      console.log("Offering share of", fileId, "to", this.id);
+
+      var manager = this.setupFileManager();
+      manager.stageLocalFile(fileId, buffer);
+      this.fileStreams[fileId] = manager;
+
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
           uuid: this.uuid,
           target: this.id,
-          fileId: this.fileManager.fileId,
-          fileName: this.fileManager.fileName,
-          fileType: this.fileManager.fileType,
-          nChunks: this.fileManager.fileChunks.length,
+          fileId: fileId,
+          fileName: fileName,
+          fileType: fileType,
+          nChunks: manager.fileChunks.length,
+          pinned: pinned,
           action: protocol.OFFER,
         }
       });
     },
 
-    answerShare: function () {
-      console.log("Answering share of", this.fileManager.fileId, "from", this.id);
-      // Tell other person to join the P2P channel
+    answerShare: function (fileId) {
+      console.log("Answering share of", fileId, "from", this.id);
+      // Tell other node to join the P2P channel if not already on
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
           uuid: this.uuid,
           target: this.id,
+          fileId: fileId,
           action: protocol.ANSWER
         }
       });
       this.p2pSetup();
-      this.fileManager.requestChunks();
+      this.fileStreams[fileId].requestChunks();
+    },
+
+    cancelShare: function (fileId) {
+      console.log("Cancelling share of", fileId, "from", this.id);
+      this.pubnub.publish({
+        channel: protocol.CHANNEL,
+        message: {
+          uuid: this.uuid,
+          target: this.id,
+          fileId: fileId,
+          action: protocol.ANSWER
+        }
+      });
     },
 
     send: function (data) {
@@ -104,26 +119,33 @@
       });
     },
 
-    packageChunk: function (chunkId) {
+    packageChunk: function (fileId, chunkId) {
       return JSON.stringify({
         action: protocol.DATA,
+        fileId: fileId,
         id: chunkId,
-        content: Base64Binary.encode(this.fileManager.fileChunks[chunkId])
+        content: Base64Binary.encode(this.fileStreams[fileId].fileChunks[chunkId])
       });
     },
 
     handleSignal: function (msg) {
-      if (msg.action === protocol.ANSWER) {
+      if (msg.action === protocol.OFFER) {
+        if (this.client.fileStore.hasLocalId(msg.fileId)) {
+          this.cancelShare(msg.fileId);
+        } else {
+          var manager = this.setupFileManager();
+          manager.stageRemoteFile(msg.fileId, msg.fileName, msg.fileType, msg.pinned, msg.nChunks);
+          this.fileStreams[msg.fileId] = manager;
+          this.answerShare(msg.fileId);
+        }
+      } else if (msg.action === protocol.ANSWER) {
         this.p2pSetup();
-      } else if (msg.action === protocol.OFFER) {
-        // TODO: cancel the share to clear the other node's staging area
-        if (this.client.fileStore.hasLocalId(msg.fileId)) return;
-        this.fileManager.stageRemoteFile(msg.fileId, msg.fileName, msg.fileType, msg.nChunks);
-        this.shareAccepted();
+      } else if (msg.action === protocol.CANCEL) {
+        delete this.fileStreams[msg.fileId];
       } else if (msg.action === protocol.PLAY) {
         console.log("Received remote play for", msg.fileId);
-        // TODO: fetch and buffer the play command
         if (!this.client.fileStore.hasLocalId(msg.fileId)) {
+          // TODO: fetch and buffer the play command
           console.log("Not replicated here...")
           return;
         }
@@ -139,15 +161,18 @@
       console.log("Connection handling presence msg: ", msg);
       if (msg.action === "join") {
         this.available = true;
+
         var j = $(this.element);
         j.show().prependTo(j.parent());
         this.client.handleJoin(this.id);
       } else {
         this.available = false;
-        if (this.connected) {
-          console.log(this.id + " has canceled the share.");
-          this.reset();
+        console.log(this.id + " has canceled the share.");
+        for (fileId in this.fileStreams) {
+          delete this.fileStreams[fileId];
         }
+        this.reset();
+
         var j = $(this.element);
         j.hide().appendTo(j.parent());
         this.client.dht.removeNode(this.id);
@@ -171,68 +196,56 @@
     createChannelCallbacks: function () {
       var self = this;
       this.onP2PMessage = function (data) {
-        //console.log("P2P message: ", data.action);
+        // console.log("P2P message: ", data.action);
         if (data.action === protocol.DATA) {
-          self.fileManager.receiveChunk(data);
-        }
-        else if (data.action === protocol.REQUEST_CHUNK) {
+          self.fileStreams[data.fileId].receiveChunk(data);
+        } else if (data.action === protocol.REQUEST_CHUNK) {
           self.nChunksSent += data.ids.length;
-          self.updateProgress(data.nReceived / self.fileManager.fileChunks.length);
+          self.updateProgress(data.nReceived / self.fileStreams[data.fileId].fileChunks.length);
           data.ids.forEach(function (id) {
-            self.send(self.packageChunk(id));
+            self.send(self.packageChunk(data.fileId, id));
           });
-        }
-        else if (data.action === protocol.DONE) {
-          self.connected = false;
+        } else if (data.action === protocol.DONE) {
+          delete self.fileStreams[data.fileId];
           self.reset();
           console.log("Share took " + ((Date.now() - self.shareStart) / 1000) + " seconds");
         }
-      };
-      this.shareAccepted = function (e) {
-        self.answerShare();
-        self.connected = true;
-      };
-      this.shareCancelled = function (e) {
-        self.pubnub.publish({
-          channel: protocol.CHANNEL,
-          message: {
-            uuid: self.uuid,
-            action: protocol.CANCEL,
-            target: self.id
-          }
-        });
-        self.reset();
       };
     },
 
     createFileCallbacks: function () {
       var self = this;
-      this.chunkRequestReady = function (chunks) {
-        //console.log("Chunks ready: ", chunks.length);
+      this.chunkRequestReady = function (fileId, chunks) {
+        // console.log("Chunks ready: ", chunks.length);
         var req = JSON.stringify({
           action: protocol.REQUEST_CHUNK,
+          fileId: fileId,
           ids: chunks,
-          nReceived: self.fileManager.nChunksReceived
+          nReceived: self.fileStreams[fileId].nChunksReceived
         });
         self.send(req);
       };
-      this.transferComplete = function () {
+      this.transferComplete = function (fileId) {
         console.log("Last chunk received.");
-        var fm = self.fileManager;
-        fm.loadArrayBuffer(function(buffer) {
-          // TODO: don't auto-pin
-          self.client.fileStore.put(fm.fileId, fm.fileName, fm.fileType, buffer, true);
-          self.send(JSON.stringify({ action: protocol.DONE }));
-          self.connected = false;
+        var m = self.fileStreams[fileId];
+        m.loadArrayBuffer(function(buffer) {
+          self.client.fileStore.put(fileId, m.fileName, m.fileType, buffer, m.pinned);
+          self.send(JSON.stringify({
+            fileId: fileId,
+            action: protocol.DONE
+          }));
+          delete self.fileStreams[fileId];
           self.reset();
         });
       };
     },
 
-    registerFileEvents: function () {
-      this.fileManager.onrequestready = this.chunkRequestReady;
-      this.fileManager.onprogress = this.updateProgress;
-      this.fileManager.ontransfercomplete = this.transferComplete;
+    setupFileManager: function () {
+      var manager = new FileManager()
+      manager.onrequestready = this.chunkRequestReady;
+      manager.onprogress = this.updateProgress;
+      manager.ontransfercomplete = this.transferComplete;
+      return manager;
     },
 
     initProgress: function () {
@@ -262,9 +275,6 @@
 
     reset: function () {
       this.updateProgress(0);
-      this.fileManager.clear();
-      this.isInitiator = false;
-      this.connected = false;
     }
   }
 

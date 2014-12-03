@@ -6,7 +6,7 @@
  * However, not all file data is stored locally.
  */
 
-function FileEntry(id, name, type, buffer, pinned, local, element) {
+function FileEntry(id, name, type, buffer, pinned, element) {
   this.id = id;
   this.name = name;
   this.type = type;
@@ -53,7 +53,7 @@ FileStore.prototype = {
     return this.kvstore[id];
   },
 
-  put: function(id, name, type, buffer, pinned, local) {
+  put: function(id, name, type, buffer, pinned) {
     var fileElement;
     if (this.hasId(id)) { // On overwrite, inherit the UI element
       fileElement = this.kvstore[id].element;
@@ -63,7 +63,7 @@ FileStore.prototype = {
       this.fileList.append(fileElement);
       this.fileList.animate({ marginTop: "3%" }, 700);
     }
-    this.kvstore[id] = new FileEntry(id, name, type, buffer, pinned, local, fileElement);
+    this.kvstore[id] = new FileEntry(id, name, type, buffer, pinned, fileElement);
   },
 
   delete: function(id) {

@@ -76,8 +76,7 @@
             _.each(self.connections, function (conn) {
               if (!conn.available) return;
               if (replicas.indexOf(conn.id) >= 0) {
-                conn.fileManager.stageLocalFile(fileId, file.name, file.type, reader.result);
-                conn.offerShare();
+                conn.offerShare(fileId, file.name, file.type, reader.result, true);
               } else {
                 conn.sendFileEntry(fileId, file.name);
               }

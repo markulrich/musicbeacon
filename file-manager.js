@@ -3,7 +3,6 @@ var CHUNK_SIZE = (IS_CHROME ? 800 : 50000);
 
 function FileManager() {
   this.fileId = null;
-  this.fileName = null;
   this.fileChunks = [];
   this.missingChunks = [];
   this.numRequested = 0;
@@ -13,14 +12,16 @@ function FileManager() {
   this.nChunksReceived = 0;
   this.nChunksExpected = 0;
   this.onrequestready = null;
+
+  // Only needed on the remote end
+  this.fileName = null;
+  this.fileType = null;
+  this.pinned = false;
 };
 
 FileManager.prototype = {
-  stageLocalFile: function (fileId, fileName, fileType, buffer) {
+  stageLocalFile: function (fileId, buffer) {
     this.fileId = fileId;
-    this.fileName = fileName;
-    this.fileType = fileType;
-
     var nChunks = Math.ceil(buffer.byteLength / CHUNK_SIZE);
     this.fileChunks = new Array(nChunks);
     var start;
@@ -32,10 +33,11 @@ FileManager.prototype = {
     console.log("File data staged.");
   },
 
-  stageRemoteFile: function (fileId, fileName, fileType, nChunks) {
+  stageRemoteFile: function (fileId, fileName, fileType, pinned, nChunks) {
     this.fileId = fileId;
     this.fileName = fileName;
     this.fileType = fileType;
+    this.pinned = pinned;
     this.fileChunks = [];
     this.missingChunks = [];
     this.numRequested = 0;
@@ -62,7 +64,7 @@ FileManager.prototype = {
         }
       }
       else {
-        this.ontransfercomplete();
+        this.ontransfercomplete(this.fileId);
       }
     }
   },
@@ -84,7 +86,7 @@ FileManager.prototype = {
      * is called directly from Connection, but asynchronously
      * when called from the timeout.
      ***/
-    this.onrequestready(chunks);
+    this.onrequestready(this.fileId, chunks);
 
     this.chunkTimeout = setTimeout(function () {
       var expired = 0;

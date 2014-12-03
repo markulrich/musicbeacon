@@ -35,23 +35,31 @@
   };
 
   Connection.prototype = {
-    sendFileRecord: function (fileId, playTime) {
-
+    sendFileEntry: function (fileId, fileName) {
+      console.log("Sending empty file entry for", fileId, "to", this.id);
+      this.pubnub.publish({
+        channel: protocol.CHANNEL,
+        message: {
+          uuid: this.uuid,
+          target: this.id,
+          fileId: fileId,
+          fileName: fileName,
+          action: protocol.FILE_ENTRY
+        }
+      };
     },
 
     sendPlay: function (fileId, playTime) {
-      console.log("Broadcasting play for", fileId);
-      var msg = {
-        uuid: this.uuid,
-        target: this.id,
-        fileId: fileId,
-        playTime: playTime,
-        action: protocol.PLAY,
-      };
-
+      console.log("Sending play for", fileId, "to", this.id);
       this.pubnub.publish({
         channel: protocol.CHANNEL,
-        message: msg
+        message: {
+          uuid: this.uuid,
+          target: this.id,
+          fileId: fileId,
+          playTime: playTime,
+          action: protocol.PLAY,
+        }
       });
     },
 
@@ -59,19 +67,17 @@
       console.log("Offering share of", this.fileManager.fileId, "to", this.id);
       this.isInitiator = true;
       this.connected = true;
-      var msg = {
-        uuid: this.uuid,
-        target: this.id,
-        fID: this.fileManager.fileId,
-        fName: this.fileManager.fileName,
-        fType: this.fileManager.fileType,
-        nChunks: this.fileManager.fileChunks.length,
-        action: protocol.OFFER,
-      };
-
       this.pubnub.publish({
         channel: protocol.CHANNEL,
-        message: msg
+        message: {
+          uuid: this.uuid,
+          target: this.id,
+          fileId: this.fileManager.fileId,
+          fileName: this.fileManager.fileName,
+          fileType: this.fileManager.fileType,
+          nChunks: this.fileManager.fileChunks.length,
+          action: protocol.OFFER,
+        }
       });
     },
 
@@ -110,16 +116,22 @@
       if (msg.action === protocol.ANSWER) {
         this.p2pSetup();
       } else if (msg.action === protocol.OFFER) {
-        if (this.client.fileStore.hasId(msg.fID)) return; // TODO: cancel the share
-        this.fileManager.stageRemoteFile(msg.fID, msg.fName, msg.fType, msg.nChunks);
+        // TODO: cancel the share to clear the other node's staging area
+        if (this.client.fileStore.hasLocalId(msg.fileId)) return;
+        this.fileManager.stageRemoteFile(msg.fileId, msg.fileName, msg.fileType, msg.nChunks);
         this.shareAccepted();
       } else if (msg.action === protocol.PLAY) {
         console.log("Received remote play for", msg.fileId);
-        if (!this.client.fileStore.hasId(msg.fileId)) {
-          console.log("Not replicated here...") // TODO: fetch on demand
+        // TODO: fetch and buffer the play command
+        if (!this.client.fileStore.hasLocalId(msg.fileId)) {
+          console.log("Not replicated here...")
+          return;
         }
         var buffer = this.client.fileStore.get(msg.fileId).buffer;
         this.client.audioManager.playFile(buffer, msg.playTime);
+      } else if (msg.action === protocol.FILE_ENTRY) {
+        if (this.client.fileStore.hasId(msg.fileId)) return;
+        this.client.fileStore.put(msg.fileId, msg.fileName, null, null, false);
       }
     },
 
@@ -208,7 +220,8 @@
         console.log("Last chunk received.");
         var fm = self.fileManager;
         fm.loadArrayBuffer(function(buffer) {
-          self.client.fileStore.put(fm.fileId, fm.fileName, fm.fileType, buffer);
+          // TODO: don't auto-pin
+          self.client.fileStore.put(fm.fileId, fm.fileName, fm.fileType, buffer, true);
           self.send(JSON.stringify({ action: protocol.DONE }));
           self.connected = false;
           self.reset();

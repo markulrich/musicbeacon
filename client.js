@@ -70,15 +70,18 @@
 
             var replicas = self.dht.getReplicaIds(fileKey);
             var localReplica = (replicas.indexOf(self.uuid) >= 0);
-            self.fileStore.put(fileId, file.name, file.type, reader.result, localReplica, true);
+            self.fileStore.put(fileId, file.name, file.type, reader.result, localReplica);
 
-            console.log('Replicating file locally and to', replicas)
-            _.each(replicas, function (replica) {
-              if (replica == self.uuid) return;
-              var conn = self.connections[replica];
-              conn.fileManager.stageLocalFile(fileId, file.name, file.type, reader.result);
-              conn.offerShare();
-            });
+            console.log('Replicating file locally and to', replicas);
+            _.each(self.connections, function (conn) {
+              if (!conn.available) return;
+              if (replicas.indexOf(conn.id) >= 0) {
+                conn.fileManager.stageLocalFile(fileId, file.name, file.type, reader.result);
+                conn.offerShare();
+              } else {
+                conn.sendFileEntry(fileId, file.name);
+              }
+            }
           }
           reader.readAsArrayBuffer(file);
         };

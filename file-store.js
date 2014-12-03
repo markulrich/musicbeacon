@@ -12,9 +12,7 @@ function FileEntry(id, name, type, buffer, pinned, local, element) {
   this.type = type;
   this.buffer = buffer;
   this.element = element;     // UI handler. Messy but effective
-
   this.pinned = pinned;       // Does the DHT protocol use this node as a replica for the file?
-  this.local = local;         // Is this file's buffer fixed/cached at this node?
 
   // For cache eviction
   this.lastModified = null;
@@ -46,6 +44,10 @@ FileStore.prototype = {
     return id in this.kvstore;
   },
 
+  hasLocalId: function(id) {
+    return this.hasId(id) && this.kvstore[id].buffer
+  }
+
   get: function(id) {
     if (this.hasId(id)) this.kvstore[id].touch();
     return this.kvstore[id];
@@ -53,7 +55,7 @@ FileStore.prototype = {
 
   put: function(id, name, type, buffer, pinned, local) {
     var fileElement;
-    if (this.hasId(id)) {
+    if (this.hasId(id)) { // On overwrite, inherit the UI element
       fileElement = this.kvstore[id].element;
     } else {
       fileElement = $(this.template({ email: name, available: true }));

@@ -81,7 +81,7 @@
               } else {
                 conn.sendFileEntry(fileId, file.name);
               }
-            }
+            });
           }
           reader.readAsArrayBuffer(file);
         };

@@ -46,7 +46,7 @@ FileStore.prototype = {
 
   hasLocalId: function(id) {
     return this.hasId(id) && this.kvstore[id].buffer
-  }
+  },
 
   get: function(id) {
     if (this.hasId(id)) this.kvstore[id].touch();

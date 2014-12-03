@@ -46,7 +46,7 @@
           fileName: fileName,
           action: protocol.FILE_ENTRY
         }
-      };
+      });
     },
 
     sendPlay: function (fileId, playTime) {

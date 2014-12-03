@@ -29,7 +29,7 @@ FileManager.prototype = {
       this.fileChunks[i] = buffer.slice(start, start + CHUNK_SIZE);
     }
 
-    console.log("File data staged");
+    console.log("File data staged.");
   },
 
   stageRemoteFile: function (fileId, fileName, fileType, nChunks) {

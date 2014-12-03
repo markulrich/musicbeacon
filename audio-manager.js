@@ -7,7 +7,7 @@ AudioManager.prototype = {
   audioCtx: new (window.AudioContext || window.webkitAudioContext)(),
 
   bufferPlay: function(fileId, playTime) {
-    this.playBuffer(fileId, playTime);
+    this.playBuffer[fileId] = playTime;
   },
 
   onFileReceived: function(fileId, buffer) {

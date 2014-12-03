@@ -11,7 +11,11 @@ function FileManager() {
   this.expireTime = 2000;
   this.nChunksReceived = 0;
   this.nChunksExpected = 0;
+  this.started = Date.now();
+
   this.onrequestready = null;
+  this.onprogress = null;
+  this.ontransfercomplete = null;
 
   // Only needed on the remote end
   this.fileName = null;

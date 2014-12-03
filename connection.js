@@ -11,7 +11,8 @@
     DATA: "data",
     DONE: "done",
     PLAY: "play",
-    FILE_ENTRY: "file-entry"
+    FILE_ENTRY: "file-entry",
+    REQUEST_FILE: "req-file"
   };
 
   function Connection(client, email, element, pubnub) {
@@ -21,7 +22,6 @@
     this.element = element;     // UI handler. Messy but effective
     this.progress = element.querySelector(".progress");
     this.p2pEstablished = false;
-    this.shareStart = null;
     this.pubnub = pubnub;
     this.allConnections = client.allConnections;
     this.fileStreams = {};
@@ -29,11 +29,19 @@
     this.createChannelCallbacks();
     this.createFileCallbacks();
     this.initProgress();
+
+    this.debug = function(msg) {
+      console.log("<" + this.id + "> " + msg);
+    }
   };
 
   Connection.prototype = {
+    requestFile: function (fileId) {
+      this.debug("Requesting file entry for " + fileId);
+    },
+
     sendFileEntry: function (fileId, fileName) {
-      console.log("Sending empty file entry for", fileId, "to", this.id);
+      this.debug("Sending empty file entry for " + fileId);
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -47,7 +55,7 @@
     },
 
     sendPlay: function (fileId, playTime) {
-      console.log("Sending play for", fileId, "to", this.id);
+      this.debug("Sending play for " + fileId);
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -61,7 +69,7 @@
     },
 
     offerShare: function (fileId, fileName, fileType, buffer, pinned) {
-      console.log("Offering share of", fileId, "to", this.id);
+      this.debug("Offering share of", fileId);
 
       var manager = this.setupFileManager();
       manager.stageLocalFile(fileId, buffer);
@@ -83,7 +91,7 @@
     },
 
     answerShare: function (fileId) {
-      console.log("Answering share of", fileId, "from", this.id);
+      this.debug("Answering share of", fileId);
       // Tell other node to join the P2P channel if not already on
       this.pubnub.publish({
         channel: protocol.CHANNEL,
@@ -99,7 +107,7 @@
     },
 
     cancelShare: function (fileId) {
-      console.log("Cancelling share of", fileId, "from", this.id);
+      this.debug("Cancelling share of", fileId);
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -130,7 +138,7 @@
 
     handleSignal: function (msg) {
       if (msg.action === protocol.OFFER) {
-        console.log("Received remote offer for", msg.fileId);
+        this.debug("Received remote offer for " + msg.fileId);
         if (this.client.fileStore.hasLocalId(msg.fileId)) {
           this.cancelShare(msg.fileId);
         } else {
@@ -142,11 +150,12 @@
       } else if (msg.action === protocol.ANSWER) {
         this.p2pSetup();
       } else if (msg.action === protocol.CANCEL) {
+        this.debug('Share canceled.');
         delete this.fileStreams[msg.fileId];
       } else if (msg.action === protocol.PLAY) {
-        console.log("Received remote play for", msg.fileId);
+        this.debug("Received remote play for " + msg.fileId);
         if (!this.client.fileStore.hasLocalId(msg.fileId)) {
-          console.log("Not replicated here...fetching data for", msg.fileId)
+          this.debug("Not replicated here...fetching data for " + msg.fileId)
           this.client.audioManager.bufferPlay(msg.fileId, msg.playTime);
           this.client.requestFile(msg.fileId);
         } else {
@@ -160,7 +169,7 @@
     },
 
     handlePresence: function (msg) {
-      console.log("Connection handling presence msg: ", msg);
+      this.debug("Connection handling presence msg: " + msg.action);
       if (msg.action === "join") {
         this.available = true;
 
@@ -169,7 +178,6 @@
         this.client.handleJoin(this.id);
       } else {
         this.available = false;
-        console.log(this.id + " has canceled the share.");
         for (fileId in this.fileStreams) {
           delete this.fileStreams[fileId];
         }
@@ -185,8 +193,7 @@
       if (this.p2pEstablished) return;
       this.p2pEstablished = true;
 
-      console.log("Setting up P2P with", this.id);
-      this.shareStart = Date.now();
+      this.debug("Setting up P2P");
       this.pubnub.subscribe({
         channel: protocol.CHANNEL,
         user: this.id,
@@ -198,7 +205,7 @@
     createChannelCallbacks: function () {
       var self = this;
       this.onP2PMessage = function (data) {
-        // console.log("P2P message: ", data.action);
+        // this.debug("P2P message: ", data.action);
         if (data.action === protocol.DATA) {
           self.fileStreams[data.fileId].receiveChunk(data);
         } else if (data.action === protocol.REQUEST_CHUNK) {
@@ -208,9 +215,10 @@
             self.send(self.packageChunk(data.fileId, id));
           });
         } else if (data.action === protocol.DONE) {
+          var t = (Date.now() - self.fileStreams[data.fileId].started) / 1000;
+          self.debug("Share of " + data.fileId + " took " + t + " seconds");
           delete self.fileStreams[data.fileId];
           self.reset();
-          console.log("Share took " + ((Date.now() - self.shareStart) / 1000) + " seconds");
         }
       };
     },
@@ -218,7 +226,7 @@
     createFileCallbacks: function () {
       var self = this;
       this.chunkRequestReady = function (fileId, chunks) {
-        // console.log("Chunks ready: ", chunks.length);
+        // this.debug("Chunks ready: ", chunks.length);
         var req = JSON.stringify({
           action: protocol.REQUEST_CHUNK,
           fileId: fileId,
@@ -228,7 +236,7 @@
         self.send(req);
       };
       this.transferComplete = function (fileId) {
-        console.log("Last chunk received.");
+        self.debug("Last chunk received.");
         var m = self.fileStreams[fileId];
         m.loadArrayBuffer(function(buffer) {
           self.client.fileStore.put(fileId, m.fileName, m.fileType, buffer, m.pinned);
@@ -243,7 +251,7 @@
     },
 
     setupFileManager: function () {
-      var manager = new FileManager()
+      var manager = new FileManager();
       manager.onrequestready = this.chunkRequestReady;
       manager.onprogress = this.updateProgress;
       manager.ontransfercomplete = this.transferComplete;

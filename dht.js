@@ -10,7 +10,7 @@
  */
 var DHT = (function () {
   var DHT_N = 10000;        // Keyspace max
-  var DHT_R = 2;            // Replication factor
+  var DHT_R = 1;            // Replication factor
 
   function DHT(client) {
     this.uuid = client.uuid;
@@ -53,15 +53,17 @@ var DHT = (function () {
     },
 
     getReplicaIds: function(key) {
+      var self = this;
       var replicaKeys;
+
       if (this.nodes.length < DHT_R) {
         replicaKeys = this.nodes;
       } else {
-        var self = this;
         var start = this.getSuccessorIndex(key);
         var overflow = Math.max(DHT_R - (this.nodes.length - start), 0);
         replicaKeys = this.nodes.slice(start, DHT_R).concat(this.nodes.slice(0, overflow));
       }
+
       return _.map(replicaKeys, function(replicaKey) { return self.reverseMap[replicaKey]; });
     }
   }

@@ -102,6 +102,12 @@
             conn.sendPlay(fileId, playTime);
           });
         };
+        this.requestFile = function(fileId) {
+          var fileKey = self.dht.hash(fileId);
+          var replicas = self.dht.getReplicaIds(fileKey);
+          var replica = replicas[Math.floor(Math.random() * replicas.length)];
+          self.connections[replica].requestFile(fileId);
+        };
         this.handleJoin = function(nodeId) {
           self.dht.addNode(nodeId);
         };

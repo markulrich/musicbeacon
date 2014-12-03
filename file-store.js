@@ -14,6 +14,8 @@ function FileEntry(id, name, type, buffer, pinned, element) {
   this.element = element;     // UI handler. Messy but effective
   this.pinned = pinned;       // Does the DHT protocol use this node as a replica for the file?
 
+  this.updateElement();
+
   // For cache eviction
   this.lastModified = null;
   this.touch();
@@ -22,6 +24,12 @@ function FileEntry(id, name, type, buffer, pinned, element) {
 FileEntry.prototype = {
   touch: function () {
     this.lastModified = new Date().getTime(); // Appropriate to use local time
+  },
+
+  updateElement: function() {
+    if (this.pinned) this.element.attr("status", "pinned");
+    else if (this.buffer) this.element.attr("status", "local");
+    else this.element.attr("status", "remote");
   }
 }
 
@@ -58,8 +66,7 @@ FileStore.prototype = {
     if (this.hasId(id)) { // On overwrite, inherit the UI element
       fileElement = this.kvstore[id].element;
     } else {
-      fileElement = $(this.template({ email: name, available: true }));
-      fileElement.attr("file-id", id);
+      fileElement = $(this.template({ email: name, status: "pinned", fileId: id }));
       this.fileList.append(fileElement);
       this.fileList.animate({ marginTop: "3%" }, 700);
     }

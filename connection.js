@@ -154,7 +154,6 @@
           this.cancelShare(msg.fileId);
         } else {
           var manager = this.setupFileManager();
-          console.log("fileName", msg.fileName)
           manager.stageRemoteFile(msg.fileId, msg.fileName, msg.fileType, msg.pinned, msg.nChunks);
           this.fileStreams[msg.fileId] = manager;
           this.answerShare(msg.fileId);
@@ -192,14 +191,14 @@
         this.client.handleJoin(this.id);
       } else {
         this.available = false;
+        this.reset();
         for (var fileId in this.fileStreams) {
           delete this.fileStreams[fileId];
         }
-        this.reset();
 
         var j = $(this.element);
         j.hide().appendTo(j.parent());
-        this.client.dht.removeNode(this.id);
+        this.client.handleLeave(this.id);
       }
     },
 

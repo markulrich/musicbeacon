@@ -12,7 +12,7 @@
 </head>
 <body>
 <script type="text/template" id="template">
-    <div id="contact-<%= email %>" class="contact" data-available="<%= available %>">
+    <div id="contact-<%= email %>" class="contact" status="<%= status %>" file-id="<%= fileId %>">
         <div class="status"></div>
         <p class="email"><%= email %></p>
         <canvas class="progress" width="36" height="36"></canvas>
@@ -20,7 +20,10 @@
 </script>
 
 <div class="top-bar">
-    <h1 class="title">MusicBeacon</h1>
+    <button id="pinned-label" class="topbar-button ">Pinned</button>
+    <button id="local-label" class="topbar-button ">Cached</button>
+    <button id="remote-label" class="topbar-button ">Remote</button>
+    <h1 class="title">We're Using Chords (har har)</h1>
 </div>
 
 <div class="top-bar">

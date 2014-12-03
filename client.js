@@ -69,11 +69,10 @@
             var fileKey = self.dht.hash(fileId);
 
             var replicas = self.dht.getReplicaIds(fileKey);
-            var localIdx = replicas.indexOf(self.uuid);
-            replicas.splice(localIdx, 1);
-            self.fileStore.put(fileId, file.name, file.type, reader.result, localIdx >= 0);
+            var pinned = (replicas.indexOf(self.uuid) >= 0);
+            self.fileStore.put(fileId, file.name, file.type, reader.result, pinned);
 
-            console.log('Replicating file locally and to', replicas);
+            console.log('Replicating file to', replicas);
             _.each(self.connections, function (conn) {
               if (!conn.available) return;
               if (replicas.indexOf(conn.id) >= 0) {
@@ -186,7 +185,7 @@
 
         if (msg.action === "join" && !USING_GOOGLE
             && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1) {
-          var contactElement = $(this.template({ email: email, available: true }));
+          var contactElement = $(this.template({ email: email, status: "pinned", fileId: ""}));
           this.contactList.append(contactElement);
           this.connections[email] = new Connection(this, email, contactElement[0], pubnub);
           this.connections[email].handlePresence(msg);

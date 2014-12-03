@@ -131,6 +131,18 @@ button {
     top: 0;
 }
 
+#pinned-label {
+    background-color: limegreen;
+}
+
+#local-label {
+    background-color: orange;
+}
+
+#remote-label {
+    background-color: red;
+}
+
 #delay-slider {
     margin-top: 21px;
 }
@@ -212,15 +224,15 @@ button {
         position: absolute;
     }
 
-    .contact[data-available=true] .status {
+    .contact[status=pinned] .status {
         background-color: limegreen;
     }
 
-    .contact[data-available=false] {
-        display: none;
+    .contact[status=local] .status {
+        background-color: orange;
     }
 
-    .contact[data-available=false] .status {
+    .contact[status=remote] .status {
         background-color: red;
     }
 

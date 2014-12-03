@@ -95,8 +95,13 @@
           var delay = parseInt(self.delaySlider.attr("value")) * 1000;
           var playTime = self.peerTime.currTime() + delay;
 
-          // TODO: might not be local
-          self.audioManager.playFile(fileId, self.fileStore.get(fileId).buffer, playTime);
+          if (self.fileStore.hasLocalId(fileId)) {
+            self.audioManager.playFile(fileId, self.fileStore.get(fileId).buffer, playTime);
+          } else {
+            self.audioManager.bufferPlay(fileId, playTime);
+            self.requestFile(fileId);
+          }
+
           _.each(self.connections, function (conn) {
             if (!conn.available) return;
             conn.sendPlay(fileId, playTime);

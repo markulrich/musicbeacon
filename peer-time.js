@@ -4,7 +4,7 @@
  */
 
 function PeerTime(pubnub, mode) {
-  this.mode = mode || "exponential";
+  this.mode = mode || "moving";
   this.drift = 0;
   this.drifts = [];
   this.pubnub = pubnub;
@@ -48,16 +48,16 @@ PeerTime.prototype = {
 
   syncDrift: function () {
     var self = this;
-    var startTime = Date.now();
+    var startTime = new Date().getTime();
     this.pubnub.time(
       function (serverTimeTenthsNs) {
         var serverTime = serverTimeTenthsNs / self.TENTHS_NS_PER_MS;
         if (serverTime === 0) {
-          console.error("Failed to return server.time result");
+          // console.error("Failed to return server.time result");
           return;
         }
 
-        var currTime = Date.now();
+        var currTime = new Date().getTime();
         var roundTripTime = currTime - startTime;
         if (roundTripTime > self.MAX_TIMEOUT) {
           console.error("Latency too high to compute drift:", roundTripTime);
@@ -76,6 +76,6 @@ PeerTime.prototype = {
   },
 
   currTime: function () {
-    return Date.now() + this.drift;
+    return new Date().getTime() + this.drift;
   }
 };

@@ -52,7 +52,7 @@
     FSClient.prototype = {
       createCallbacks: function () {
         var self = this;
-        this.uploadFile = function() {
+        this.uploadFile = function () {
           var file = self.fileInput[0].files[0];
           if (!file) return;
 
@@ -63,20 +63,21 @@
           }
 
           var reader = new FileReader();
-          reader.onloadend = function(e) {
+          reader.onloadend = function (e) {
             if (reader.readyState !== FileReader.DONE) return;
             var fileId = self.fileStore.generateFileId(file);
             var fileKey = self.dht.hash(fileId);
 
             var replicas = self.dht.getReplicaIds(fileKey);
-            var localReplica = (replicas.indexOf(self.uuid) >= 0);
-            self.fileStore.put(fileId, file.name, file.type, reader.result, localReplica);
+            var localIdx = replicas.indexOf(self.uuid);
+            replicas.splice(localIdx, 1);
+            self.fileStore.put(fileId, file.name, file.type, reader.result, localIdx >= 0);
 
             console.log('Replicating file locally and to', replicas);
             _.each(self.connections, function (conn) {
               if (!conn.available) return;
               if (replicas.indexOf(conn.id) >= 0) {
-                conn.offerShare(fileId, file.name, file.type, reader.result, true);
+                conn.offerShare(fileId, true);
               } else {
                 conn.sendFileEntry(fileId, file.name);
               }
@@ -84,7 +85,7 @@
           }
           reader.readAsArrayBuffer(file);
         };
-        this.broadcastPlay = function() {
+        this.broadcastPlay = function () {
           var selectedFileElement = $(".file-list .selected");
           if (selectedFileElement.length === 0) {
             toastr.error("Please select a file.");
@@ -102,28 +103,28 @@
             conn.sendPlay(fileId, playTime);
           });
         };
-        this.requestFile = function(fileId) {
+        this.requestFile = function (fileId) {
           var fileKey = self.dht.hash(fileId);
           var replicas = self.dht.getReplicaIds(fileKey);
           var replica = replicas[Math.floor(Math.random() * replicas.length)];
           self.connections[replica].requestFile(fileId);
         };
-        this.handleJoin = function(nodeId) {
+        this.handleJoin = function (nodeId) {
           self.dht.addNode(nodeId);
         };
-        this.handleLeave = function(nodeId) {
+        this.handleLeave = function (nodeId) {
           self.dht.removeNode(nodeId);
         };
       },
 
       registerUIEvents: function () {
         var self = this;
-        this.uploadButton.click(function() { self.fileInput.click(); });
-        this.fileInput.change(function() { self.uploadFile(); });
-        this.playButton.click(function() { self.broadcastPlay(); });
-        this.selectableTemplate = function(input) {
+        this.uploadButton.click(function () { self.fileInput.click(); });
+        this.fileInput.change(function () { self.uploadFile(); });
+        this.playButton.click(function () { self.broadcastPlay(); });
+        this.selectableTemplate = function (input) {
           var element = $(self.template(input));
-          element.click(function() {
+          element.click(function () {
             if (self.selected) self.selected.removeClass("selected");
             element.addClass("selected");
             self.selected = element;
@@ -155,7 +156,7 @@
           presence: this.handlePresence.bind(this)
         });
 
-        window.onbeforeunload = function() {
+        window.onbeforeunload = function () {
           pubnub.unsubscribe({
             channel: protocol.CHANNEL
           });
@@ -202,7 +203,7 @@
   var client = createFSClient();
   var animals = $.get("animals.json");
   var adjectives = $.get("adjectives.json");
-  $.when(animals, adjectives).done(function(animals, adjectives) {
+  $.when(animals, adjectives).done(function (animals, adjectives) {
     animals = animals[0];
     adjectives = adjectives[0];
     var animal = animals[Math.floor(Math.random() * animals.length)];

@@ -30,14 +30,24 @@
     this.createFileCallbacks();
     this.initProgress();
 
-    this.debug = function(msg) {
+    this.debug = function (msg) {
       console.log("<" + this.id + "> " + msg);
     }
   };
 
   Connection.prototype = {
-    requestFile: function (fileId) {
+    requestFile: function (fileId, pinned) {
       this.debug("Requesting file entry for " + fileId);
+      this.pubnub.publish({
+        channel: protocol.CHANNEL,
+        message: {
+          uuid: this.uuid,
+          target: this.id,
+          fileId: fileId,
+          pinned: pinned,
+          action: protocol.REQUEST_FILE
+        }
+      });
     },
 
     sendFileEntry: function (fileId, fileName) {
@@ -68,11 +78,12 @@
       });
     },
 
-    offerShare: function (fileId, fileName, fileType, buffer, pinned) {
-      this.debug("Offering share of", fileId);
+    offerShare: function (fileId, pinned) {
+      this.debug("Offering share of " + fileId);
 
+      var f = this.client.fileStore.get(fileId);
       var manager = this.setupFileManager();
-      manager.stageLocalFile(fileId, buffer);
+      manager.stageLocalFile(fileId, f.buffer);
       this.fileStreams[fileId] = manager;
 
       this.pubnub.publish({
@@ -81,8 +92,8 @@
           uuid: this.uuid,
           target: this.id,
           fileId: fileId,
-          fileName: fileName,
-          fileType: fileType,
+          fileName: f.name,
+          fileType: f.type,
           nChunks: manager.fileChunks.length,
           pinned: pinned,
           action: protocol.OFFER,
@@ -91,7 +102,7 @@
     },
 
     answerShare: function (fileId) {
-      this.debug("Answering share of", fileId);
+      this.debug("Answering share of " + fileId);
       // Tell other node to join the P2P channel if not already on
       this.pubnub.publish({
         channel: protocol.CHANNEL,
@@ -143,6 +154,7 @@
           this.cancelShare(msg.fileId);
         } else {
           var manager = this.setupFileManager();
+          console.log("fileName", msg.fileName)
           manager.stageRemoteFile(msg.fileId, msg.fileName, msg.fileType, msg.pinned, msg.nChunks);
           this.fileStreams[msg.fileId] = manager;
           this.answerShare(msg.fileId);
@@ -155,7 +167,7 @@
       } else if (msg.action === protocol.PLAY) {
         this.debug("Received remote play for " + msg.fileId);
         if (!this.client.fileStore.hasLocalId(msg.fileId)) {
-          this.debug("Not replicated here...fetching data for " + msg.fileId)
+          this.debug("Not replicated here...fetching data for " + msg.fileId);
           this.client.audioManager.bufferPlay(msg.fileId, msg.playTime);
           this.client.requestFile(msg.fileId);
         } else {
@@ -165,6 +177,8 @@
       } else if (msg.action === protocol.FILE_ENTRY) {
         if (this.client.fileStore.hasId(msg.fileId)) return;
         this.client.fileStore.put(msg.fileId, msg.fileName, null, null, false);
+      } else if (msg.action === protocol.REQUEST_FILE) {
+        this.offerShare(msg.fileId, msg.pinned);
       }
     },
 
@@ -178,7 +192,7 @@
         this.client.handleJoin(this.id);
       } else {
         this.available = false;
-        for (fileId in this.fileStreams) {
+        for (var fileId in this.fileStreams) {
           delete this.fileStreams[fileId];
         }
         this.reset();
@@ -227,16 +241,15 @@
       var self = this;
       this.chunkRequestReady = function (fileId, chunks) {
         // this.debug("Chunks ready: ", chunks.length);
-        var req = JSON.stringify({
+        self.send(JSON.stringify({
           action: protocol.REQUEST_CHUNK,
           fileId: fileId,
           ids: chunks,
           nReceived: self.fileStreams[fileId].nChunksReceived
-        });
-        self.send(req);
+        }));
       };
       this.transferComplete = function (fileId) {
-        self.debug("Last chunk received.");
+        self.debug("Last chunk of " + fileId + " received.");
         var m = self.fileStreams[fileId];
         m.loadArrayBuffer(function(buffer) {
           self.client.fileStore.put(fileId, m.fileName, m.fileType, buffer, m.pinned);
@@ -245,6 +258,7 @@
             action: protocol.DONE
           }));
           delete self.fileStreams[fileId];
+          self.client.audioManager.onFileReceived(fileId, buffer);
           self.reset();
         });
       };

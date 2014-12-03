@@ -33,8 +33,6 @@ FileManager.prototype = {
       start = i * CHUNK_SIZE;
       this.fileChunks[i] = buffer.slice(start, start + CHUNK_SIZE);
     }
-
-    console.log("File data staged.");
   },
 
   stageRemoteFile: function (fileId, fileName, fileType, pinned, nChunks) {

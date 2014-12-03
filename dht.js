@@ -23,13 +23,13 @@ var DHT = (function () {
   }
 
   DHT.prototype = {
-    hash: function(str) {
-      return _.reduce(str, function(h, c) {
+    hash: function (str) {
+      return _.reduce(str, function (h, c) {
         return (h * 37 + c.charCodeAt(0)) % DHT_N;
       }, 5381);
     },
 
-    addNode: function(nodeId) {
+    addNode: function (nodeId) {
       var h = this.hash(nodeId);
       this.reverseMap[h] = nodeId;
 
@@ -38,13 +38,13 @@ var DHT = (function () {
       this.nodes.splice(i, 0, h);
     },
 
-    removeNode: function(nodeId) {
+    removeNode: function (nodeId) {
       var h = this.hash(nodeId);
       var i = this.nodes.indexOf(h);
       if (i >= 0) this.nodes.splice(i, 1);
     },
 
-    getSuccessorIndex: function(key) {
+    getSuccessorIndex: function (key) {
       var i;
       for (i = this.nodes.length - 1; i >= 0; i--) {
         if (this.nodes[i] < key) return (i + 1) % this.nodes.length;
@@ -52,7 +52,7 @@ var DHT = (function () {
       return 0;
     },
 
-    getReplicaIds: function(key) {
+    getReplicaIds: function (key) {
       var self = this;
       var replicaKeys;
 
@@ -61,10 +61,10 @@ var DHT = (function () {
       } else {
         var start = this.getSuccessorIndex(key);
         var overflow = Math.max(DHT_R - (this.nodes.length - start), 0);
-        replicaKeys = this.nodes.slice(start, DHT_R).concat(this.nodes.slice(0, overflow));
+        replicaKeys = this.nodes.slice(start, start + DHT_R).concat(this.nodes.slice(0, overflow));
       }
 
-      return _.map(replicaKeys, function(replicaKey) { return self.reverseMap[replicaKey]; });
+      return _.map(replicaKeys, function (replicaKey) { return self.reverseMap[replicaKey]; });
     }
   }
 

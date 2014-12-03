@@ -29,19 +29,19 @@ PeerTime.prototype = {
   EWMA_DECAY: 0.90,
 
   driftAlgos: {
-    total: function(currDrift) {
+    total: function (currDrift) {
       this.drifts.push(currDrift);
     },
-    moving: function(currDrift) {
+    moving: function (currDrift) {
       this.drifts.push(currDrift);
       if (this.drifts.length > this.MOVING_WINDOW) this.drifts.shift();
       this.drift = this.avgDrift();
     },
-    exponential: function(currDrift) {
+    exponential: function (currDrift) {
       if (this.numSyncs === 0) this.drift = currDrift;
       return this.EWMA_DECAY * this.drift + (1 - this.EWMA_DECAY) * currDrift;
     },
-    none: function() {
+    none: function () {
       return 0;
     }
   },
@@ -72,7 +72,7 @@ PeerTime.prototype = {
   },
 
   avgDrift: function () {
-    return _.reduce(this.drifts, function(a, b) { return a + b; }) / this.drifts.length;
+    return _.reduce(this.drifts, function (a, b) { return a + b; }) / this.drifts.length;
   },
 
   currTime: function () {

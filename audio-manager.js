@@ -6,17 +6,17 @@ function AudioManager(client) {
 AudioManager.prototype = {
   audioCtx: new (window.AudioContext || window.webkitAudioContext)(),
 
-  bufferPlay: function(fileId, playTime) {
+  bufferPlay: function (fileId, playTime) {
     this.playBuffer[fileId] = playTime;
   },
 
-  onFileReceived: function(fileId, buffer) {
+  onFileReceived: function (fileId, buffer) {
     if (fileId in this.playBuffer) {
       this.playFile(fileId, buffer, this.playBuffer[fileId]);
     }
   },
 
-  playFile: function(fileId, encodedBuffer, playTime) {
+  playFile: function (fileId, encodedBuffer, playTime) {
     var self = this;
     var source = this.audioCtx.createBufferSource();
     delete this.playBuffer[fileId];
@@ -25,7 +25,7 @@ AudioManager.prototype = {
       source.buffer = buffer;
       source.connect(self.audioCtx.destination);
       var diff = (self.peerTime.currTime() - playTime) / 1000;
-      console.log("Starting playback at", diff);
+      console.log("Starting playback of", fileId, "at", diff);
       source.start(0, diff);
     });
   }

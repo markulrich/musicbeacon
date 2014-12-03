@@ -48,7 +48,7 @@ PeerTime.prototype = {
 
   syncDrift: function () {
     var self = this;
-    var startTime = new Date().getTime();
+    var startTime = Date.now();
     this.pubnub.time(
       function (serverTimeTenthsNs) {
         var serverTime = serverTimeTenthsNs / self.TENTHS_NS_PER_MS;
@@ -57,7 +57,7 @@ PeerTime.prototype = {
           return;
         }
 
-        var currTime = new Date().getTime();
+        var currTime = Date.now();
         var roundTripTime = currTime - startTime;
         if (roundTripTime > self.MAX_TIMEOUT) {
           console.error("Latency too high to compute drift:", roundTripTime);
@@ -76,6 +76,6 @@ PeerTime.prototype = {
   },
 
   currTime: function () {
-    return new Date().getTime() + this.drift;
+    return Date.now() + this.drift;
   }
 };

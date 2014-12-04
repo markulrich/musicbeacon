@@ -48,6 +48,11 @@
 
     requestFile: function (fileId, pinned) {
       this.debug("Requesting " + fileId);
+      if (this.fileStreams[fileId]) {
+        this.fileStreams[fileId].pinned |= pinned;
+        return;
+      }
+
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -90,6 +95,10 @@
 
     offerShare: function (fileId, pinned) {
       this.debug("Offering share of " + fileId);
+      if (this.fileStreams[fileId]) {
+        this.fileStreams[fileId].pinned |= pinned;
+        return;
+      }
 
       var f = this.client.fileStore.get(fileId);
       var manager = this.setupFileManager();

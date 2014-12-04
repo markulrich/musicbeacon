@@ -8,6 +8,8 @@
 
 ## Background
 
+### The problem
+
 It is very common to want to synchronize music playback between multiple rooms in a house or
 other buildings. There are a few ways to achieve this goal nowadays, but most common tools for
 music synchronization have significant drawbacks:
@@ -33,6 +35,8 @@ devices, but provides the media itself.
 3. A completely decentralized media system that can play songs located on any connected device,
 broadcast to every other node in the system.
 
+### Proposed solution
+
 In this project we attempt to implement the third option. A decentralized media system like that
 provides several benefits, especially given recent developments in web technologies:
 
@@ -51,7 +55,7 @@ file availability between multiple machines.
 These benefits lead us to believe that a decentralized system of commodity computers and mobile
 devices provides an ideal way to share file data and synchronize music across multiple machines.
 
-## Web Real Time Communication (WebRTC) and PubNub
+### Web Real Time Communication (WebRTC) and PubNub
 
 WebRTC is an open web standard for direct, peer-to-peer communication between browsers over the
 web. Most common web browsers support it, including Chrome for desktop and mobile, Firefox, and
@@ -70,7 +74,7 @@ For this project, while we are not accessing camera and microphone data, the Med
 abstraction can be used with media sourced on local disks as well, with a little work; and the
 `PeerConnection` abstraction provides the means to actually communicate that data.
 
-### Coordination
+#### Coordination
 
 Unfortunately, while the protocol ultimately allows for peer-to-peer communication, it requires
 interaction with a **signaling server** in order to coordinate metadata about the connection between
@@ -86,7 +90,7 @@ The signaling server need not be centralized (creating a master-follower relatio
 management), but for the purposes of this project we have decided to follow that structure for the
 sake of simplicity.
 
-### PubNub
+#### PubNub
 
 Due to the time constraints on implementing this project, rather than building and hosting a
 signaling server by hand that we could use for the project, we decided to use a hosted third party

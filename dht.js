@@ -52,14 +52,15 @@ var DHT = (function () {
       return 0;
     },
 
-    getReplicaIds: function (key) {
+    getReplicaIds: function (fileId) {
       var self = this;
       var replicaKeys;
 
       if (this.nodes.length < DHT_R) {
         replicaKeys = this.nodes;
       } else {
-        var start = this.getSuccessorIndex(key);
+        var fileKey = this.hash(fileId);
+        var start = this.getSuccessorIndex(fileKey);
         var overflow = Math.max(DHT_R - (this.nodes.length - start), 0);
         replicaKeys = this.nodes.slice(start, start + DHT_R).concat(this.nodes.slice(0, overflow));
       }

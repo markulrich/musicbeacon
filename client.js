@@ -67,9 +67,7 @@
           reader.onloadend = function (e) {
             if (reader.readyState !== FileReader.DONE) return;
             var fileId = self.fileStore.generateFileId(file);
-            var fileKey = self.dht.hash(fileId);
-
-            var replicas = self.dht.getReplicaIds(fileKey);
+            var replicas = self.dht.getReplicaIds(fileId);
             var pinned = _.contains(replicas, self.uuid);
             self.fileStore.put(fileId, file.name, file.type, reader.result, pinned);
 
@@ -109,8 +107,7 @@
           });
         };
         this.requestFile = function (fileId, pinned) {
-          var fileKey = self.dht.hash(fileId);
-          var replicas = self.dht.getReplicaIds(fileKey);
+          var replicas = self.dht.getReplicaIds(fileId);
           replicas = _.filter(replicas, function(nodeId) { return nodeId !== self.uuid });
           var replica = replicas[Math.floor(Math.random() * replicas.length)];
           self.connections[replica].requestFile(fileId, pinned);
@@ -126,7 +123,8 @@
 
             if (_.contains(replicas, self.uuid)) {
               if (!self.fileStore.hasLocalId(fileId)) {
-                self.requestFile(fileId, pinned);
+                console.log("Assuming responsibility for", fileId)
+                self.requestFile(fileId, true);
               } else {
                 var f = self.fileStore.get(fileId);
                 f.pinned = true;

@@ -187,6 +187,7 @@
         if (this.client.fileStore.hasId(msg.fileId)) return;
         this.client.fileStore.put(msg.fileId, msg.fileName, null, null, false);
       } else if (msg.action === protocol.REQUEST_FILE) {
+        // TODO: redirect if not fully loaded yet
         this.offerShare(msg.fileId, msg.pinned);
       }
     },

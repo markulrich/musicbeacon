@@ -50,3 +50,65 @@ file availability between multiple machines.
 
 These benefits lead us to believe that a decentralized system of commodity computers and mobile
 devices provides an ideal way to share file data and synchronize music across multiple machines.
+
+## Web Real Time Communication (WebRTC) and PubNub
+
+WebRTC is an open web standard for direct, peer-to-peer communication between browsers over the
+web. Most common web browsers support it, including Chrome for desktop and mobile, Firefox, and
+Opera. It provides a set of primitives that allow browsers to communicate with one another
+directly without installing any plugins. It is intended for bandwidth-heavy applications like video
+calling and peer to peer filesharing, which makes it an excellent choice for media applications
+like this project.
+
+The WebRTC protocol provides three APIs:
+
+1. `MediaStream` (get camera and microphone data, accessed via `navigator.getUserMedia`)
+2. `PeerConnection` (sending and receiving media)
+3. `DataChannel` (sending arbitrary data directly between browsers)
+
+For this project, while we are not accessing camera and microphone data, the MediaStream
+abstraction can be used with media sourced on local disks as well, with a little work; and the
+`PeerConnection` abstraction provides the means to actually communicate that data.
+
+### Coordination
+
+Unfortunately, while the protocol ultimately allows for peer-to-peer communication, it requires
+interaction with a **signaling server** in order to coordinate metadata about the connection between
+peers, discoverability of peer's addresses through which they can communicate, and a communication
+channel that can cope with NAT addresses and firewall restrictions.
+
+The signaling architecture is not specified by WebRTC, but rather by the Javascript Session
+Establishment Protocol (JSEP). It specifies the format of messages via the Session Description
+Protocol (SDP), which communicates information like the data format being sent via WebRTC, and data
+necessary to establish connections between peers.
+
+The signaling server need not be centralized (creating a master-follower relationship for metadata
+management), but for the purposes of this project we have decided to follow that structure for the
+sake of simplicity.
+
+### PubNub
+
+Due to the time constraints on implementing this project, rather than building and hosting a
+signaling server by hand that we could use for the project, we decided to use a hosted third party
+service, PubNub, as our signaling server. If we wish to in the future, we have the option of later
+replacing PubNub with an open-source implementation or custom-built, self-hosted signaling server.
+
+Specifically, PubNub provides a few abstractions over the signaling process that allow us to more
+efficiently build our application:
+
+* Time API: Query an atomic clock for the current time
+* Rooms: A number of peers can connect to a room and declare a unique identifier. Each peer's
+    unique identifiers are broadcast and publicly accessible in the room.
+* Publish: publish a message containing binary data through a channel
+
+These abstractions reduce the amount of boilerplate code necessary to distribute media playback,
+allowing us to focus further on the design of the system and ways of mitigating inherent issues of
+distributed media playback, like clock drift and network transit times.
+
+## References
+
+WebRTC Overview: https://www.youtube.com/watch?v=p2HzZkd2A40
+WebRTC Structure: http://www.webrtc.org/reference/architecture#TOC-Your-Web-App
+WebRTC Signaling: http://www.html5rocks.com/en/tutorials/webrtc/infrastructure/
+Javascript Session Establishment Protocol: http://tools.ietf.org/html/draft-ietf-rtcweb-jsep-03
+PubNub: http://www.pubnub.com/blog/what-is-webrtc/

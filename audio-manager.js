@@ -1,6 +1,7 @@
 function AudioManager(client) {
   this.peerTime = client.peerTime;
   this.playBuffer = {};
+  this.playing = {};
 }
 
 AudioManager.prototype = {
@@ -25,8 +26,17 @@ AudioManager.prototype = {
       source.buffer = buffer;
       source.connect(self.audioCtx.destination);
       var diff = (self.peerTime.currTime() - playTime) / 1000;
-      console.log("Starting playback of", fileId, "at", diff);
       source.start(0, diff);
+      console.log("Starting playback of", fileId, "at", diff);
+      self.playing[playTime] = source;
     });
+  },
+
+  stop: function () {
+    var minTime = _.min(_.map(this.playing, function(source, playTime) { return playTime }));
+    if (minTime !== Infinity) {
+      this.playing[minTime].stop();
+      delete this.playing[minTime];
+    }
   }
 };

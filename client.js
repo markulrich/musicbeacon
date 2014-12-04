@@ -36,6 +36,7 @@
       this.uploadButton = $("#upload-button");
       this.fileInput = $("#upload-input");
       this.playButton = $("#play-button");
+      this.stopButton = $("#stop-button");
       this.delaySlider = $("#delay-slider");
       this.fileList = $(".file-list");
       this.contactList = $(".contact-list");
@@ -147,6 +148,7 @@
         this.uploadButton.click(function () { self.fileInput.click(); });
         this.fileInput.change(function () { self.uploadFile(); });
         this.playButton.click(function () { self.broadcastPlay(); });
+        this.stopButton.click(function () { self.audioManager.stop(); });
         this.selectableTemplate = function (input) {
           var element = $(self.template(input));
           element.click(function () {

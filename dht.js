@@ -31,6 +31,7 @@ var DHT = (function () {
 
     addNode: function (nodeId) {
       var h = this.hash(nodeId);
+      if (h in this.reverseMap) return;
       this.reverseMap[h] = nodeId;
 
       var i = this.getSuccessorIndex(h);
@@ -39,6 +40,7 @@ var DHT = (function () {
     },
 
     removeNode: function (nodeId) {
+      delete this.reverseMap[nodeId];
       var h = this.hash(nodeId);
       var i = this.nodes.indexOf(h);
       if (i >= 0) this.nodes.splice(i, 1);

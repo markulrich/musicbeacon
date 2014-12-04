@@ -14,7 +14,7 @@
 
   // Easier than comparing string literals
   var protocol = {
-    CHANNEL: "get-my-file2",
+    CHANNEL: "get-my-file3",
     // Other primitives in connection.js - avoid duplication
   };
 
@@ -24,7 +24,6 @@
 
     function FSClient() {
       this.connections = {};
-      this.contactEmails = {};
 
       // Initialized after login
       this.uuid = null;
@@ -49,6 +48,10 @@
 
       this.createCallbacks();
       this.registerUIEvents();
+
+      this.bootstrapping = false;
+      this.bootstrapped = false;
+      this.bootstrappedNodes = null;
     };
 
     FSClient.prototype = {
@@ -96,8 +99,7 @@
           }
 
           _.each(self.connections, function (conn) {
-            if (!conn.available) return;
-            conn.sendPlay(fileId, playTime);
+            if (conn.available) conn.sendPlay(fileId, playTime);
           });
         };
         this.requestFile = function (fileId, pinned) {
@@ -106,15 +108,11 @@
           var replica = replicas[Math.floor(Math.random() * replicas.length)];
           self.connections[replica].requestFile(fileId, pinned);
         };
-        this.handleJoin = function (nodeId) {
-          self.dht.addNode(nodeId);
-        };
-        this.handleLeave = function (nodeId) {
-          self.dht.removeNode(nodeId);
-          delete self.connections[nodeId];
+
+        // DHT maintenance
+        this.updateIndex = function () {
           for (fileId in self.fileStore.kvstore) {
             replicas = self.dht.getReplicaIds(fileId);
-
             if (_.contains(replicas, self.uuid)) {
               if (!self.fileStore.hasLocalId(fileId)) {
                 console.log("Assuming responsibility for", fileId)
@@ -132,12 +130,61 @@
               }
             }
           }
+        }
+        this.handleJoin = function (nodeId) {
+          self.dht.addNode(nodeId);
+          self.updateIndex();
         };
+        this.handleLeave = function (nodeId) {
+          self.dht.removeNode(nodeId);
+          delete self.connections[nodeId];
+          self.updateIndex();
+        };
+
+        // Bootstrapping
+        this.checkBootstrapComplete = function () {
+          if (!self.bootstrapping || self.bootstrapped) return;
+          var bootstrapComplete = true;
+          _.each(self.bootstrappedNodes, function (nodeId) {
+            if (nodeId != self.uuid && !self.connections[nodeId]) bootstrapComplete = false;
+          });
+
+          if (bootstrapComplete) {
+            console.log("Finished bootstrapping");
+            self.bootstrapped = true;
+            _.each(self.connections, function (conn) { conn.bootstrapJoin(); });
+            self.updateIndex();
+          }
+        };
+        this.handleBootstrapReply = function (replyNodeId, data) {
+          if (self.bootstrapping || self.bootstrapped) return;
+          self.bootstrapping = true;
+          self.bootstrappedNodes = data.nodes;
+          _.each(data.nodes, function (nodeId) { self.dht.addNode(nodeId); });
+          _.each(data.files, function (f) { self.fileStore.put(f.fileId, f.fileName, null, null, false); });
+          self.checkBootstrapComplete();
+        }
+        this.setupBootstrap = function () {
+          if (self.bootstrapping || self.bootstrapped) return;
+          console.log("Setting up bootstrap");
+          nodeIds = _.map(self.connections, function (conn, nodeId) { return nodeId; });
+          if (nodeIds.length > 0) {
+            var nodeId = nodeIds[Math.floor(Math.random() * nodeIds.length)];
+            self.connections[nodeId].requestBootstrap();
+          }
+          self.scheduleBootstrap();
+        };
+        this.scheduleBootstrap = function () {
+          setTimeout (function () {
+            self.setupBootstrap();
+          }, 1000);
+        };
+        this.scheduleBootstrap();
       },
 
       registerUIEvents: function () {
         var self = this;
-        this.getSelectedFileId = function() {
+        this.getSelectedFileId = function () {
           var selectedFileElement = $(".file-list .selected");
           if (selectedFileElement.length === 0) {
             toastr.error("Please select a file.");
@@ -147,7 +194,7 @@
         };
         this.uploadButton.click(function () { self.fileInput.click(); });
         this.fileInput.change(function () { self.uploadFile(); });
-        this.fetchButton.click(function() {
+        this.fetchButton.click(function () {
           var fileId = self.getSelectedFileId();
           if (fileId) self.requestFile(fileId, false);
         });
@@ -200,9 +247,8 @@
       handleSignal: function (msg) {
         var self = this;
         // Don't care about messages we send
-        if (msg.uuid !== this.uuid && msg.target === this.uuid) {
-          var targetConnection = self.connections[msg.uuid];
-          targetConnection.handleSignal(msg);
+        if (msg.uuid !== this.uuid && msg.target === this.uuid && msg.uuid in self.connections) {
+          self.connections[msg.uuid].handleSignal(msg);
         }
       },
 

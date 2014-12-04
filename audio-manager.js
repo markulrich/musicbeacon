@@ -33,7 +33,7 @@ AudioManager.prototype = {
   },
 
   stop: function () {
-    var minTime = _.min(_.map(this.playing, function(source, playTime) { return playTime }));
+    var minTime = _.min(_.map(this.playing, function (source, playTime) { return playTime }));
     if (minTime !== Infinity) {
       this.playing[minTime].stop();
       delete this.playing[minTime];

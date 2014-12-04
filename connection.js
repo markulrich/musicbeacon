@@ -3,7 +3,7 @@
 
   var HOSTED = window.location.protocol !== "file:";
   var protocol = {
-    CHANNEL: "get-my-file2",
+    CHANNEL: "get-my-file3",
     OFFER: "offer",
     ANSWER: "answer",
     CANCEL: "cancel",
@@ -12,8 +12,12 @@
     DONE: "done",
     PLAY: "play",
     FILE_ENTRY: "file-entry",
-    REQUEST_FILE: "req-file"
+    REQUEST_FILE: "req-file",
+    REQUEST_BOOTSTRAP: "req-boot",
+    REPLY_BOOTSTRAP: "rep-boot",
+    BOOTSTRAP_JOIN: "boot-join"
   };
+
 
   function Connection(client, email, element, pubnub) {
     this.client = client;
@@ -44,6 +48,52 @@
       } else {
         $(this.element).attr("status", "connected");
       }
+    },
+
+    bootstrapJoin: function () {
+      // this.debug("Bootstrap joining");
+      this.pubnub.publish({
+        channel: protocol.CHANNEL,
+        message: {
+          uuid: this.uuid,
+          target: this.id,
+          action: protocol.BOOTSTRAP_JOIN
+        }
+      });
+    },
+
+    replyBootstrap: function () {
+      this.debug("Responding to bootstrap");
+      var nodes = _.map(this.client.connections, function (conn, nodeId) {
+        return nodeId;
+      }).concat(this.uuid);
+      var files = _.map(this.client.fileStore.kvstore, function (f) {
+        return { fileId: f.id, fileName: f.name };
+      });
+      this.pubnub.publish({
+        channel: protocol.CHANNEL,
+        message: {
+          uuid: this.uuid,
+          target: this.id,
+          data: {
+            nodes: nodes,
+            files: files
+          },
+          action: protocol.REPLY_BOOTSTRAP
+        }
+      });
+    },
+
+    requestBootstrap: function () {
+      this.debug("Requesting bootstrap");
+      this.pubnub.publish({
+        channel: protocol.CHANNEL,
+        message: {
+          uuid: this.uuid,
+          target: this.id,
+          action: protocol.REQUEST_BOOTSTRAP
+        }
+      });
     },
 
     requestFile: function (fileId, pinned) {
@@ -137,7 +187,7 @@
     },
 
     cancelShare: function (fileId) {
-      this.debug("Cancelling share of", fileId);
+      this.debug("Cancelling share of" + fileId);
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -198,6 +248,12 @@
       } else if (msg.action === protocol.REQUEST_FILE) {
         // TODO: redirect if not fully loaded yet
         this.offerShare(msg.fileId, msg.pinned);
+      } else if (msg.action === protocol.REQUEST_BOOTSTRAP) {
+        this.replyBootstrap();
+      } else if (msg.action === protocol.REPLY_BOOTSTRAP) {
+        this.client.handleBootstrapReply(this.id, msg.data);
+      } else if (msg.action === protocol.BOOTSTRAP_JOIN) {
+        this.client.handleJoin(this.id);
       }
     },
 
@@ -209,7 +265,8 @@
           this.timeout = false;
           this.updateElement();
         } else {
-          this.client.handleJoin(this.id);
+          // Can't bootstrap on join because target might not have connection
+          this.client.checkBootstrapComplete();
         }
       } else if (msg.action === "timeout") {
         // TODO: kick out after multiple timeouts
@@ -217,7 +274,6 @@
         this.timeout = true;
         this.updateElement();
       } else if (msg.action === "leave") {
-        this.reset();
         $(this.element).hide();
         this.client.handleLeave(this.id);
         for (var fileId in this.fileStreams) {

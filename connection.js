@@ -25,6 +25,7 @@
     this.pubnub = pubnub;
     this.allConnections = client.allConnections;
     this.fileStreams = {};
+    this.timeout = false;
 
     this.createChannelCallbacks();
     this.createFileCallbacks();
@@ -36,8 +37,17 @@
   };
 
   Connection.prototype = {
+    updateElement: function() {
+      if (this.timeout) {
+        $(this.element).attr("status", "timeout");
+        this.updateProgress(0);
+      } else {
+        $(this.element).attr("status", "connected");
+      }
+    },
+
     requestFile: function (fileId, pinned) {
-      this.debug("Requesting file entry for " + fileId);
+      this.debug("Requesting " + fileId);
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -51,7 +61,7 @@
     },
 
     sendFileEntry: function (fileId, fileName) {
-      this.debug("Sending empty file entry for " + fileId);
+      this.debug("Sending empty file entry " + fileId);
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -185,20 +195,24 @@
       this.debug("Connection handling presence msg: " + msg.action);
       if (msg.action === "join") {
         this.available = true;
-
-        var j = $(this.element);
-        j.show().prependTo(j.parent());
-        this.client.handleJoin(this.id);
-      } else {
+        if (this.timeout) {
+          this.timeout = false;
+          this.updateElement();
+        } else {
+          this.client.handleJoin(this.id);
+        }
+      } else if (msg.action === "timeout") {
+        // TODO: kick out after multiple timeouts
         this.available = false;
+        this.timeout = true;
+        this.updateElement();
+      } else if (msg.action === "leave") {
         this.reset();
+        $(this.element).hide();
+        this.client.handleLeave(this.id);
         for (var fileId in this.fileStreams) {
           delete this.fileStreams[fileId];
         }
-
-        var j = $(this.element);
-        j.hide().appendTo(j.parent());
-        this.client.handleLeave(this.id);
       }
     },
 
@@ -206,7 +220,7 @@
       if (this.p2pEstablished) return;
       this.p2pEstablished = true;
 
-      this.debug("Setting up P2P");
+      // this.debug("Setting up P2P");
       this.pubnub.subscribe({
         channel: protocol.CHANNEL,
         user: this.id,

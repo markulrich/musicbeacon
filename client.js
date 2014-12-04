@@ -69,13 +69,13 @@
             var fileKey = self.dht.hash(fileId);
 
             var replicas = self.dht.getReplicaIds(fileKey);
-            var pinned = (replicas.indexOf(self.uuid) >= 0);
+            var pinned = _.contains(replicas, self.uuid);
             self.fileStore.put(fileId, file.name, file.type, reader.result, pinned);
 
             console.log('Replicating file to', replicas);
             _.each(self.connections, function (conn) {
               if (!conn.available) return;
-              if (replicas.indexOf(conn.id) >= 0) {
+              if (_.contains(replicas, conn.id)) {
                 conn.offerShare(fileId, true);
               } else {
                 conn.sendFileEntry(fileId, file.name);
@@ -99,7 +99,7 @@
             self.audioManager.playFile(fileId, self.fileStore.get(fileId).buffer, playTime);
           } else {
             self.audioManager.bufferPlay(fileId, playTime);
-            self.requestFile(fileId);
+            self.requestFile(fileId, false);
           }
 
           _.each(self.connections, function (conn) {
@@ -107,17 +107,38 @@
             conn.sendPlay(fileId, playTime);
           });
         };
-        this.requestFile = function (fileId) {
+        this.requestFile = function (fileId, pinned) {
           var fileKey = self.dht.hash(fileId);
           var replicas = self.dht.getReplicaIds(fileKey);
+          replicas = _.filter(replicas, function(nodeId) { return nodeId !== self.uuid });
           var replica = replicas[Math.floor(Math.random() * replicas.length)];
-          self.connections[replica].requestFile(fileId);
+          self.connections[replica].requestFile(fileId, pinned);
         };
         this.handleJoin = function (nodeId) {
           self.dht.addNode(nodeId);
         };
         this.handleLeave = function (nodeId) {
           self.dht.removeNode(nodeId);
+          delete self.connections[nodeId];
+          for (fileId in self.fileStore.kvstore) {
+            replicas = self.dht.getReplicaIds(fileId);
+
+            if (_.contains(replicas, self.uuid)) {
+              if (!self.fileStore.hasLocalId(fileId)) {
+                self.requestFile(fileId, pinned);
+              } else {
+                var f = self.fileStore.get(fileId);
+                f.pinned = true;
+                f.updateElement();
+              }
+            } else {
+              if (self.fileStore.hasLocalId(fileId)) {
+                var f = self.fileStore.get(fileId);
+                f.pinned = false;
+                f.updateElement();
+              }
+            }
+          }
         };
       },
 
@@ -190,7 +211,7 @@
 
         if (msg.action === "join" && !USING_GOOGLE
             && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1) {
-          var contactElement = $(this.template({ email: email, status: "pinned", fileId: ""}));
+          var contactElement = $(this.template({ email: email, status: "connected", fileId: ""}));
           this.contactList.append(contactElement);
           this.connections[email] = new Connection(this, email, contactElement[0], pubnub);
           this.connections[email].handlePresence(msg);

@@ -89,7 +89,6 @@ button {
     margin: 0 auto;
     padding-top: 15px;
     position: relative;
-    left: 1px;
     color: white;
     display: inline-block;
 }
@@ -131,16 +130,14 @@ button {
     top: 0;
 }
 
-#pinned-label {
-    background-color: limegreen;
-}
-
-#local-label {
-    background-color: orange;
-}
-
-#remote-label {
-    background-color: red;
+.topbar-button-right {
+    display: inline-block;
+    float: right;
+    margin-top: 18px;
+    margin-right: 15px;
+    position: relative;
+    right: 15px;
+    top: 0;
 }
 
 #delay-slider {
@@ -224,6 +221,14 @@ button {
         position: absolute;
     }
 
+    .contact[status=connected] .status {
+        background-color: teal;
+    }
+
+    .contact[status=timeout] .status {
+        background-color: darkred;
+    }
+
     .contact[status=pinned] .status {
         background-color: limegreen;
     }
@@ -233,7 +238,7 @@ button {
     }
 
     .contact[status=remote] .status {
-        background-color: red;
+        background-color: darkred;
     }
 
     .contact .progress {

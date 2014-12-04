@@ -275,6 +275,7 @@
         self.debug("Last chunk of " + fileId + " received.");
         var m = self.fileStreams[fileId];
         m.loadArrayBuffer(function(buffer) {
+          var pinned = m.pinned || self.client.fileStore.hasLocalId(fileId);
           self.client.fileStore.put(fileId, m.fileName, m.fileType, buffer, m.pinned);
           self.send(JSON.stringify({
             fileId: fileId,

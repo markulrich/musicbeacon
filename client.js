@@ -37,6 +37,7 @@
       this.fileInput = $("#upload-input");
       this.playButton = $("#play-button");
       this.stopButton = $("#stop-button");
+      this.fetchButton = $("#fetch-button");
       this.delaySlider = $("#delay-slider");
       this.fileList = $(".file-list");
       this.contactList = $(".contact-list");
@@ -83,14 +84,7 @@
           }
           reader.readAsArrayBuffer(file);
         };
-        this.broadcastPlay = function () {
-          var selectedFileElement = $(".file-list .selected");
-          if (selectedFileElement.length === 0) {
-            toastr.error("Please select a file.");
-            return;
-          }
-          var fileId = selectedFileElement.attr("file-id");
-
+        this.broadcastPlay = function (fileId) {
           var delay = parseInt(self.delaySlider.attr("value")) * 1000;
           var playTime = self.peerTime.currTime() + delay;
 
@@ -143,9 +137,24 @@
 
       registerUIEvents: function () {
         var self = this;
+        this.getSelectedFileId = function() {
+          var selectedFileElement = $(".file-list .selected");
+          if (selectedFileElement.length === 0) {
+            toastr.error("Please select a file.");
+            return null;
+          }
+          return selectedFileElement.attr("file-id");
+        };
         this.uploadButton.click(function () { self.fileInput.click(); });
         this.fileInput.change(function () { self.uploadFile(); });
-        this.playButton.click(function () { self.broadcastPlay(); });
+        this.fetchButton.click(function() {
+          var fileId = self.getSelectedFileId();
+          if (fileId) self.requestFile(fileId, false);
+        });
+        this.playButton.click(function () {
+          var fileId = self.getSelectedFileId();
+          if (fileId) self.broadcastPlay(fileId);
+        });
         this.stopButton.click(function () { self.audioManager.stop(); });
         this.selectableTemplate = function (input) {
           var element = $(self.template(input));

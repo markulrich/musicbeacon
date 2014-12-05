@@ -3,7 +3,7 @@
 
   var HOSTED = window.location.protocol !== "file:";
   var protocol = {
-    CHANNEL: "get-my-file3",
+    CHANNEL: "get-my-filez3",
     OFFER: "offer",
     ANSWER: "answer",
     CANCEL: "cancel",
@@ -329,7 +329,7 @@
       };
       this.transferComplete = function (fileId) {
         self.debug("Last chunk of " + fileId + " received.");
-        console.log("FINISHED! " + this.client.peerTime.currTime());
+        console.log("FINISHED! " + self.client.peerTime.currTime());
         var m = self.fileStreams[fileId];
         m.loadArrayBuffer(function(buffer) {
           var pinned = m.pinned || self.client.fileStore.hasLocalId(fileId);

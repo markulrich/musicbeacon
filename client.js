@@ -14,7 +14,7 @@
 
   // Easier than comparing string literals
   var protocol = {
-    CHANNEL: "get-my-file3",
+    CHANNEL: "get-my-filez3",
     // Other primitives in connection.js - avoid duplication
   };
 

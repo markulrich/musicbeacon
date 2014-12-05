@@ -105,6 +105,7 @@
         this.requestFile = function (fileId, pinned) {
           var replicas = self.dht.getReplicaIds(fileId);
           replicas = _.filter(replicas, function(nodeId) { return nodeId !== self.uuid });
+          // TODO: weight by best rtt (ggp exploration?)
           var replica = replicas[Math.floor(Math.random() * replicas.length)];
           self.connections[replica].requestFile(fileId, pinned);
         };
@@ -166,9 +167,9 @@
         }
         this.setupBootstrap = function () {
           if (self.bootstrapping || self.bootstrapped) return;
-          console.log("Setting up bootstrap");
           nodeIds = _.map(self.connections, function (conn, nodeId) { return nodeId; });
           if (nodeIds.length > 0) {
+            console.log("Setting up bootstrap");
             var nodeId = nodeIds[Math.floor(Math.random() * nodeIds.length)];
             self.connections[nodeId].requestBootstrap();
           }

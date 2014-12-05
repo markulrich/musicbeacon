@@ -19,6 +19,8 @@ var DHT = (function () {
     // Maintain the invariant that this.nodes is always sorted.
     this.nodes = [hashedid];
     this.reverseMap = {};
+
+    // TODO: don't need node to go to this position. Allow variability
     this.reverseMap[hashedid] = client.uuid;
   }
 

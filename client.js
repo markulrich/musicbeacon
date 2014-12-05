@@ -98,10 +98,12 @@
             self.requestFile(fileId, false);
           }
 
+          console.log("START PLAYBACK!!!!");
+          console.log(this.peerTime.currTime());
           _.each(self.connections, function (conn) {
             if (conn.available) conn.sendPlay(fileId, playTime);
           });
-        };
+        }.bind(this);
         this.requestFile = function (fileId, pinned) {
           var replicas = self.dht.getReplicaIds(fileId);
           replicas = _.filter(replicas, function(nodeId) { return nodeId !== self.uuid });

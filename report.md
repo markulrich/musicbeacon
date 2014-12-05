@@ -76,9 +76,13 @@ The WebRTC protocol provides three APIs:
 2. `PeerConnection` (sending and receiving media)
 3. `DataChannel` (sending arbitrary data directly between browsers)
 
-For this project, while we are not accessing camera and microphone data, the MediaStream
+Ideally, while we are not accessing camera and microphone data, the MediaStream
 abstraction can be used with media sourced on local disks as well, with a little work; and the
 `PeerConnection` abstraction provides the means to actually communicate that data.
+
+In this project, however, we are currently using the `DataChannel` abstraction instead to send
+media in discrete chunks, rather than streaming it, for simplicity. As a result, `DataChannels`
+are doing the heavy lifting for media distribution.
 
 #### Coordination
 

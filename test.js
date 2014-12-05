@@ -1,6 +1,6 @@
 (function () {
 
-    var PUB_KEY = "asdfjlas";//"pub-c-2e234ba3-5a2a-459b-bc82-9cab4307e02e";
+    var PUB_KEY = "pub-c-2e234ba3-5a2a-459b-bc82-9cab4307e02e";
     var SUB_KEY = "sub-c-175f3e5a-7c39-11e4-ad4f-02ee2ddab7fe";
 
     var pubnub = PUBNUB.init({

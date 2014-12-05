@@ -4,7 +4,7 @@
  */
 
 function PeerTime(pubnub, mode) {
-    this.mode = mode || 'minRTT';
+    this.mode = mode || 'weighted';
     this.drift = 0;
     this.drifts = [];
     this.pubnub = pubnub;
@@ -20,17 +20,17 @@ function PeerTime(pubnub, mode) {
         console.log('STARTED SETUP');
         window.setInterval(function () {
             self.syncDrift();
-        }, this.REFRESH)
-    }, Math.random() * 10000); // TODO no timeout.
+        }, self.REFRESH);
+    }, Math.random() * 1000); // TODO no timeout.
 }
 
 PeerTime.prototype = {
-    REFRESH: 20000, // TODO decrease.
-    MAX_TIMEOUT: 1000,
+    REFRESH: 2000, // TODO decrease.
+    MAX_RTT: 1000,
     TENTHS_NS_PER_MS: 10000,
     TAKE_BEST: 5,
-    MOVING_WINDOW: 60,
-    EWMA_DECAY: 0.9,
+    MOVING_WINDOW: 10,
+    EWMA_DECAY: 0.4,
 
     avgOfKey: function(arr, key) {
         var sum = 0, len = arr.length;
@@ -41,57 +41,49 @@ PeerTime.prototype = {
     },
 
     driftAlgos: {
-        curr: function(currDrift) {
-            this.drift = currDrift;
-        },
-        lowRTT: function(currDrift, roundTripTime) {
-            this.drifts.push({offset: currDrift, rtt: roundTripTime});
-            if (this.drifts.length > this.MOVING_WINDOW) this.drifts.shift();
-            var drifts = this.drifts.slice(0);
-            drifts.sort(function(a, b) { return a.rtt - b.rtt; });
-            drifts = drifts.slice(0, this.TAKE_BEST);
-            this.drift = this.avgOfKey(drifts, 'offset');
-        },
-        highRTT: function(currDrift, roundTripTime) {
-            this.drifts.push({offset: currDrift, rtt: roundTripTime});
-            if (this.drifts.length > this.MOVING_WINDOW) this.drifts.shift();
-            var drifts = this.drifts.slice(0);
-            drifts.sort(function(a, b) { return b.rtt - a.rtt; });
-            drifts = drifts.slice(0, this.TAKE_BEST);
-            this.drift = this.avgOfKey(drifts, 'offset');
-        },
+        //lowRTT: function(currDrift, roundTripTime) {
+        //    this.drifts.push({offset: currDrift, rtt: roundTripTime});
+        //    if (this.drifts.length > this.MOVING_WINDOW) this.drifts.shift();
+        //    var drifts = this.drifts.slice(0);
+        //    drifts.sort(function(a, b) { return a.rtt - b.rtt; });
+        //    drifts = drifts.slice(0, this.TAKE_BEST);
+        //    this.drift = this.avgOfKey(drifts, 'offset');
+        //},
+        //highRTT: function(currDrift, roundTripTime) {
+        //    this.drifts.push({offset: currDrift, rtt: roundTripTime});
+        //    if (this.drifts.length > this.MOVING_WINDOW) this.drifts.shift();
+        //    var drifts = this.drifts.slice(0);
+        //    drifts.sort(function(a, b) { return b.rtt - a.rtt; });
+        //    drifts = drifts.slice(0, this.TAKE_BEST);
+        //    this.drift = this.avgOfKey(drifts, 'offset');
+        //},
         //minRTT: function(currDrift, roundTripTime) {
-        //    if (this.numSyncs === 0 || roundTripTime < this.minRoundTripTime) {
-        //        this.drift = currDrift;
-        //        this.minRoundTripTime = roundTripTime;
-        //    }
+        //    this.drifts.push({offset: currDrift, rtt: roundTripTime});
+        //    if (this.drifts.length > this.MOVING_WINDOW) this.drifts.shift();
+        //    var drifts = this.drifts.slice(0);
+        //    drifts.sort(function(a, b) { return a.rtt - b.rtt; });
+        //    this.drift = drifts[0].offset;
         //},
         //maxRTT: function(currDrift, roundTripTime) {
-        //    if (this.numSyncs === 0 || roundTripTime > this.maxRoundTripTime) {
-        //        this.drift = currDrift;
-        //        this.maxRoundTripTime = roundTripTime;
-        //    }
+        //    this.drifts.push({offset: currDrift, rtt: roundTripTime});
+        //    if (this.drifts.length > this.MOVING_WINDOW) this.drifts.shift();
+        //    var drifts = this.drifts.slice(0);
+        //    drifts.sort(function(a, b) { return b.rtt - a.rtt; });
+        //    this.drift = drifts[0].offset;
         //},
-        total: function(currDrift) {
-            this.drifts.push(currDrift);
-            this.drift = this.avgDrift();
-        },
-        moving: function(currDrift) {
-            this.drifts.push(currDrift);
-            if (this.drifts.length > this.MOVING_WINDOW) this.drifts.shift();
-            this.drift = this.avgDrift();
+        //total: function(currDrift) {
+        //    this.drifts.push(currDrift);
+        //    this.drift = this.avgDrift();
+        //},
+        //none: function() {
+        //    this.drift = 0;
+        //},
+        curr: function(currDrift) {
+            this.drift = currDrift;
         },
         weighted: function(currDrift) {
             if (this.numSyncs === 0) this.drift = currDrift;
             this.drift = this.EWMA_DECAY * this.drift + (1 - this.EWMA_DECAY) * currDrift;
-        },
-        //none: function() {
-        //    this.drift = 0;
-        //},
-        first: function(currDrift) {
-            if (this.numSyncs < 1) {
-                this.drift = currDrift;
-            }
         }
     },
 
@@ -108,7 +100,7 @@ PeerTime.prototype = {
 
                 var currTime = new Date().getTime();
                 var roundTripTime = currTime - startTime;
-                if (roundTripTime > self.MAX_TIMEOUT) {
+                if (roundTripTime > self.MAX_RTT) {
                     console.error('Latency too high to compute drift:', roundTripTime);
                     return;
                 }

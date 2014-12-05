@@ -55,6 +55,12 @@ file availability between multiple machines.
 These benefits lead us to believe that a decentralized system of commodity computers and mobile
 devices provides an ideal way to share file data and synchronize music across multiple machines.
 
+Our approach as currently implemented is not without its downsides, Data is currently stored
+temporarily, so if a peer's browser window closes, it will lose the replicated media it holds. This
+can be solved by using local storage to persist metadata rather than keeping it in memory, but as
+it is structured now, the product is better suited for impromptu gatherings with multiple weak
+speaker systems (like mobile phones) than long-term, home-media storage.
+
 ### Web Real Time Communication (WebRTC) and PubNub
 
 WebRTC is an open web standard for direct, peer-to-peer communication between browsers over the

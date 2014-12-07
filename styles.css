@@ -110,7 +110,7 @@ button {
     color: white;
 }
 
-.my-email {
+.my-username {
     display: inline-block;
     float: right;
     padding-top: 18px;
@@ -174,7 +174,7 @@ button {
         display: inline-block;
     }
 
-    .contact .email {
+    .contact .username {
         margin-left: 18px;
         max-width: 300px;
         font-weight: bold;

@@ -12,9 +12,9 @@
 </head>
 <body>
 <script type="text/template" id="template">
-    <div id="contact-<%= email %>" class="contact" status="<%= status %>" file-id="<%= fileId %>">
+    <div id="contact-<%= username %>" class="contact" status="<%= status %>" file-id="<%= fileId %>">
         <div class="status"></div>
-        <p class="email"><%= email %></p>
+        <p class="username"><%= username %></p>
         <canvas class="progress" width="36" height="36"></canvas>
     </div>
 </script>
@@ -34,7 +34,7 @@
     <button id="fetch-button" class="topbar-button">Fetch</button>
     <button id="play-button" class="topbar-button">Play</button>
     <button id="stop-button" class="topbar-button">Stop</button>
-    <p class="my-email"></p>
+    <p class="my-username"></p>
 </div>
 
 <div class="file-list"></div>

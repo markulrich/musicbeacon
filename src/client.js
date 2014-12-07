@@ -7,16 +7,11 @@
   var HOSTED = window.location.protocol !== 'file:';
   var USING_GOOGLE = false;
   var MAX_FSIZE = 160; // MB - browser memory limit
+  var DEFAULT_CHANNEL = 'get-my-filez3';
 
   if (window.location.host == HOST && window.location.protocol != 'https:') {
     window.location.protocol = 'https:';
   }
-
-  // Easier than comparing string literals
-  var protocol = {
-    CHANNEL: 'get-my-filez3'
-    // Other primitives in connection.js - avoid duplication
-  };
 
   function createClient() {
     var CONTACT_API_URL = 'https://www.google.com/m8/feeds';
@@ -52,6 +47,8 @@
       this.bootstrapping = false;
       this.bootstrapped = false;
       this.bootstrappedNodes = null;
+
+      this.channel = DEFAULT_CHANNEL;
     }
 
     Client.prototype = {
@@ -235,7 +232,7 @@
         $('.my-email').html(this.uuid);
 
         pubnub.subscribe({
-          channel: protocol.CHANNEL,
+          channel: DEFAULT_CHANNEL,
           heartbeat: 10,
           callback: this.handleSignal.bind(this),
           presence: this.handlePresence.bind(this)
@@ -243,7 +240,7 @@
 
         window.onbeforeunload = function() {
           pubnub.unsubscribe({
-            channel: protocol.CHANNEL
+            channel: DEFAULT_CHANNEL
           });
         };
       },

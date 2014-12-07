@@ -3,7 +3,6 @@
 
   var HOSTED = window.location.protocol !== 'file:';
   var protocol = {
-    CHANNEL: 'get-my-filez3',
     OFFER: 'offer',
     ANSWER: 'answer',
     CANCEL: 'cancel',
@@ -53,7 +52,7 @@
     bootstrapJoin: function() {
       // this.debug("Bootstrap joining");
       this.pubnub.publish({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         message: {
           uuid: this.uuid,
           target: this.id,
@@ -71,7 +70,7 @@
         return { fileId: f.id, fileName: f.name };
       });
       this.pubnub.publish({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         message: {
           uuid: this.uuid,
           target: this.id,
@@ -87,7 +86,7 @@
     requestBootstrap: function() {
       this.debug('Requesting bootstrap');
       this.pubnub.publish({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         message: {
           uuid: this.uuid,
           target: this.id,
@@ -104,7 +103,7 @@
       }
 
       this.pubnub.publish({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         message: {
           uuid: this.uuid,
           target: this.id,
@@ -118,7 +117,7 @@
     sendFileEntry: function(fileId, fileName) {
       this.debug('Sending empty file entry ' + fileId);
       this.pubnub.publish({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         message: {
           uuid: this.uuid,
           target: this.id,
@@ -132,7 +131,7 @@
     sendPlay: function(fileId, playTime) {
       this.debug('Sending play for ' + fileId);
       this.pubnub.publish({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         message: {
           uuid: this.uuid,
           target: this.id,
@@ -156,7 +155,7 @@
       this.fileStreams[fileId] = manager;
 
       this.pubnub.publish({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         message: {
           uuid: this.uuid,
           target: this.id,
@@ -174,7 +173,7 @@
       this.debug('Answering share of ' + fileId);
       // Tell other node to join the P2P channel if not already on
       this.pubnub.publish({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         message: {
           uuid: this.uuid,
           target: this.id,
@@ -189,7 +188,7 @@
     cancelShare: function(fileId) {
       this.debug('Cancelling share of' + fileId);
       this.pubnub.publish({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         message: {
           uuid: this.uuid,
           target: this.id,
@@ -201,7 +200,7 @@
 
     send: function(data) {
       this.pubnub.publish({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         user: this.id,
         message: data
       });

@@ -33,7 +33,6 @@
       this.playButton = $('#play-button');
       this.stopButton = $('#stop-button');
       this.fetchButton = $('#fetch-button');
-      this.delaySlider = $('#delay-slider');
       this.fileList = $('.file-list');
       this.contactList = $('.contact-list');
       this.template = _.template($('#template').html().trim());
@@ -86,8 +85,7 @@
           reader.readAsArrayBuffer(file);
         };
         this.broadcastPlay = function(fileId) {
-          var delay = parseInt(self.delaySlider.attr('value')) * 1000;
-          var playTime = self.peerTime.currTime() + delay;
+          var playTime = self.peerTime.currTime();
 
           if (self.fileStore.hasLocalId(fileId)) {
             self.audioManager.playFile(fileId, self.fileStore.get(fileId).buffer, playTime);
@@ -96,8 +94,6 @@
             self.requestFile(fileId, false);
           }
 
-          console.log('START PLAYBACK!!!!');
-          console.log(this.peerTime.currTime());
           _.each(self.connections, function(conn) {
             if (conn.available) conn.sendPlay(fileId, playTime);
           });

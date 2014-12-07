@@ -18,11 +18,11 @@
     // Other primitives in connection.js - avoid duplication
   };
 
-  function createFSClient() {
+  function createClient() {
     var CONTACT_API_URL = "https://www.google.com/m8/feeds";
     var pubnub;
 
-    function FSClient() {
+    function Client() {
       this.connections = {};
 
       // Initialized after login
@@ -54,7 +54,7 @@
       this.bootstrappedNodes = null;
     };
 
-    FSClient.prototype = {
+    Client.prototype = {
       createCallbacks: function () {
         var self = this;
         this.uploadFile = function () {
@@ -277,13 +277,13 @@
         }
       }
     };
-    return new FSClient();
+    return new Client();
   }
 
   var PUB_KEY = "pub-c-24cc8449-f45e-4bdf-97b5-c97bbb6479d0";
   var SUB_KEY = "sub-c-60fc9a74-6f61-11e4-b563-02ee2ddab7fe";
 
-  var client = createFSClient();
+  var client = createClient();
   var animals = $.get("animals.json");
   var adjectives = $.get("adjectives.json");
   $.when(animals, adjectives).done(function (animals, adjectives) {

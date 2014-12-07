@@ -1,4 +1,6 @@
 var FileEntry = (function() {
+  'use strict';
+
   function FileEntry(id, name, type, buffer, pinned, element) {
     this.id = id;
     this.name = name;

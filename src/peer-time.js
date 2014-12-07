@@ -4,6 +4,8 @@
  */
 
 var PeerTime = (function() {
+  'use strict';
+
   function PeerTime(pubnub, mode) {
     this.mode = mode || 'moving';
     this.drift = 0;

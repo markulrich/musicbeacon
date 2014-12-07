@@ -9,12 +9,14 @@
  *   key refers to a location on the DHT keyspace and is a hashed id.
  */
 var DHT = (function() {
+  'use strict';
+
   var DHT_N = 10000;        // Keyspace max
   var DHT_R = 5;            // Replication factor
 
   function DHT(client) {
     this.uuid = client.uuid;
-    hashedid = this.hash(client.uuid);
+    var hashedid = this.hash(client.uuid);
 
     // Maintain the invariant that this.nodes is always sorted.
     this.nodes = [hashedid];

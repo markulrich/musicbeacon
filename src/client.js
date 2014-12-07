@@ -52,7 +52,7 @@
       this.bootstrapping = false;
       this.bootstrapped = false;
       this.bootstrappedNodes = null;
-    };
+    }
 
     Client.prototype = {
       createCallbacks: function () {
@@ -84,7 +84,7 @@
                 conn.sendFileEntry(fileId, file.name);
               }
             });
-          }
+          };
           reader.readAsArrayBuffer(file);
         };
         this.broadcastPlay = function (fileId) {
@@ -106,7 +106,7 @@
         }.bind(this);
         this.requestFile = function (fileId, pinned) {
           var replicas = self.dht.getReplicaIds(fileId);
-          replicas = _.filter(replicas, function(nodeId) { return nodeId !== self.uuid });
+          replicas = _.filter(replicas, function(nodeId) { return nodeId !== self.uuid; });
           // TODO: weight by best rtt (ggp exploration?)
           var replica = replicas[Math.floor(Math.random() * replicas.length)];
           self.connections[replica].requestFile(fileId, pinned);
@@ -114,26 +114,27 @@
 
         // DHT maintenance
         this.updateIndex = function () {
-          for (fileId in self.fileStore.kvstore) {
-            replicas = self.dht.getReplicaIds(fileId);
+          for (var fileId in self.fileStore.kvstore) {
+            var replicas = self.dht.getReplicaIds(fileId);
+            var f;
             if (_.contains(replicas, self.uuid)) {
               if (!self.fileStore.hasLocalId(fileId)) {
-                console.log("Assuming responsibility for", fileId)
+                console.log("Assuming responsibility for", fileId);
                 self.requestFile(fileId, true);
               } else {
-                var f = self.fileStore.get(fileId);
+                f = self.fileStore.get(fileId);
                 f.pinned = true;
                 f.updateElement();
               }
             } else {
               if (self.fileStore.hasLocalId(fileId)) {
-                var f = self.fileStore.get(fileId);
+                f = self.fileStore.get(fileId);
                 f.pinned = false;
                 f.updateElement();
               }
             }
           }
-        }
+        };
         this.handleJoin = function (nodeId) {
           self.dht.addNode(nodeId);
           self.updateIndex();
@@ -166,7 +167,7 @@
           _.each(data.nodes, function (nodeId) { self.dht.addNode(nodeId); });
           _.each(data.files, function (f) { self.fileStore.put(f.fileId, f.fileName, null, null, false); });
           self.checkBootstrapComplete();
-        }
+        };
         this.setupBootstrap = function () {
           if (self.bootstrapping || self.bootstrapped) return;
           nodeIds = _.map(self.connections, function (conn, nodeId) { return nodeId; });
@@ -214,7 +215,7 @@
             self.selected = element;
           });
           return element;
-        }
+        };
       },
 
       localLogin: function (name) {
@@ -267,8 +268,8 @@
           return;
         }
 
-        if (msg.action === "join" && !USING_GOOGLE
-            && msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1) {
+        if (msg.action === "join" && !USING_GOOGLE &&
+            msg.uuid !== this.uuid && msg.uuid.indexOf("@") == -1) {
           var contactElement = $(this.template({ email: email, status: "connected", fileId: ""}));
           this.contactList.append(contactElement);
           this.connections[email] = new Connection(this, email, contactElement[0], pubnub);

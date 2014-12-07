@@ -287,61 +287,58 @@
 
       // this.debug("Setting up P2P");
       this.pubnub.subscribe({
-        channel: protocol.CHANNEL,
+        channel: this.client.channel,
         user: this.id,
         callback: this.onP2PMessage
       });
-      var self = this;
     },
 
     createChannelCallbacks: function() {
-      var self = this;
       this.onP2PMessage = function(data) {
-        self.debug('P2P message: ', data.action);
+        this.debug('P2P message: ', data.action);
         if (data.action === protocol.DATA) {
-          self.fileStreams[data.fileId].receiveChunk(data);
+          this.fileStreams[data.fileId].receiveChunk(data);
         } else if (data.action === protocol.REQUEST_CHUNK) {
-          self.nChunksSent += data.ids.length;
-          self.updateProgress(data.nReceived / self.fileStreams[data.fileId].fileChunks.length);
+          this.nChunksSent += data.ids.length;
+          this.updateProgress(data.nReceived / this.fileStreams[data.fileId].fileChunks.length);
           data.ids.forEach(function(id) {
-            self.send(self.packageChunk(data.fileId, id));
-          });
+            this.send(this.packageChunk(data.fileId, id));
+          }.bind(this));
         } else if (data.action === protocol.DONE) {
-          var t = (Date.now() - self.fileStreams[data.fileId].started) / 1000;
-          self.debug('Share of ' + data.fileId + ' took ' + t + ' seconds');
-          delete self.fileStreams[data.fileId];
-          self.reset();
+          var t = (Date.now() - this.fileStreams[data.fileId].started) / 1000;
+          this.debug('Share of ' + data.fileId + ' took ' + t + ' seconds');
+          delete this.fileStreams[data.fileId];
+          this.reset();
         }
-      };
+      }.bind(this);
     },
 
     createFileCallbacks: function() {
-      var self = this;
       this.chunkRequestReady = function(fileId, chunks) {
         // this.debug("Chunks ready: ", chunks.length);
-        self.send(JSON.stringify({
+        this.send(JSON.stringify({
           action: protocol.REQUEST_CHUNK,
           fileId: fileId,
           ids: chunks,
-          nReceived: self.fileStreams[fileId].nChunksReceived
+          nReceived: this.fileStreams[fileId].nChunksReceived
         }));
-      };
+      }.bind(this);
+
       this.transferComplete = function(fileId) {
-        self.debug('Last chunk of ' + fileId + ' received.');
-        console.log('FINISHED! ' + self.client.peerTime.currTime());
-        var m = self.fileStreams[fileId];
+        this.debug('Last chunk of ' + fileId + ' received.');
+        var m = this.fileStreams[fileId];
         m.loadArrayBuffer(function(buffer) {
-          var pinned = m.pinned || self.client.fileStore.hasLocalId(fileId);
-          self.client.fileStore.put(fileId, m.fileName, m.fileType, buffer, m.pinned);
-          self.send(JSON.stringify({
+          var pinned = m.pinned || this.client.fileStore.hasLocalId(fileId);
+          this.client.fileStore.put(fileId, m.fileName, m.fileType, buffer, m.pinned);
+          this.send(JSON.stringify({
             fileId: fileId,
             action: protocol.DONE
           }));
-          delete self.fileStreams[fileId];
-          self.client.audioManager.onFileReceived(fileId, buffer);
-          self.reset();
-        });
-      };
+          delete this.fileStreams[fileId];
+          this.client.audioManager.onFileReceived(fileId, buffer);
+          this.reset();
+        }.bind(this));
+      }.bind(this);
     },
 
     setupFileManager: function() {
@@ -353,7 +350,6 @@
     },
 
     initProgress: function() {
-      var self = this;
       var ctx = this.progress.getContext('2d');
       var imd = null;
       var circ = Math.PI * 2;

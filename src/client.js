@@ -1,9 +1,9 @@
-﻿/**
- * Main entry point for the application
- */
-
-(function() {
+﻿(function() {
   'use strict';
+  /**
+   * Main entry point for the application
+   */
+
   var HOST = 'localhost:8000/index.html';
   var HOSTED = window.location.protocol !== 'file:';
   var USING_GOOGLE = false;
@@ -168,7 +168,7 @@
         };
         this.setupBootstrap = function() {
           if (self.bootstrapping || self.bootstrapped) return;
-          nodeIds = _.map(self.connections, function(conn, nodeId) { return nodeId; });
+          var nodeIds = _.map(self.connections, function(conn, nodeId) { return nodeId; });
           if (nodeIds.length > 0) {
             console.log('Setting up bootstrap');
             var nodeId = nodeIds[Math.floor(Math.random() * nodeIds.length)];

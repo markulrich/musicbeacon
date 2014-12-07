@@ -16,7 +16,7 @@ var DHT = (function() {
 
   function DHT(client) {
     this.uuid = client.uuid;
-    hashedid = this.hash(client.uuid);
+    var hashedid = this.hash(client.uuid);
 
     // Maintain the invariant that this.nodes is always sorted.
     this.nodes = [hashedid];

@@ -225,7 +225,7 @@
       this.fileStore = new FileStore(this);
       this.dht = new DHT(this);
 
-      $('.my-email').html(this.uuid);
+      $('.my-username').html(this.uuid);
 
       pubnub.subscribe({
         channel: DEFAULT_CHANNEL,
@@ -255,18 +255,20 @@
      * DHT maintenance.
      */
     handlePresence: function(msg) {
-      var email = msg.uuid;
-      if (this.connections[email]) {
-        this.connections[email].handlePresence(msg);
+      var username = msg.uuid;
+      if (this.connections[username]) {
+        this.connections[username].handlePresence(msg);
         return;
       }
 
       if (msg.action === 'join' && msg.uuid !== this.uuid &&
           msg.uuid.indexOf('@') == -1) {
-        var contactElement = $(this.template({ email: email, status: 'connected', fileId: ''}));
+        var contactElement = $(this.template({
+          username: username, status: 'connected', fileId: ''
+        }));
         this.contactList.append(contactElement);
-        this.connections[email] = new Connection(this, email, contactElement[0], pubnub);
-        this.connections[email].handlePresence(msg);
+        this.connections[username] = new Connection(this, username, contactElement[0], pubnub);
+        this.connections[username].handlePresence(msg);
         this.contactList.animate({ marginTop: '3%' }, 700);
       }
     }

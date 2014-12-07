@@ -88,6 +88,7 @@ button {
     font-size: 32px;
     margin: 0 auto;
     padding-top: 15px;
+    position: relative;
     color: white;
     display: inline-block;
 }
@@ -114,20 +115,59 @@ button {
     float: right;
     padding-top: 18px;
     padding-right: 15px;
-    position: absolute;
+    position: relative;
     right: 15px;
     top: 0;
 }
 
-.contact-list {
-    background-color: #262220;
-    margin-left: auto;
-    margin-right: auto;
-    width: 700px;
+.topbar-button {
+    display: inline-block;
+    float: left;
+    margin-top: 18px;
+    margin-left: 15px;
     position: relative;
+    left: 15px;
+    top: 0;
+}
+
+.topbar-button-right {
+    display: inline-block;
+    float: right;
+    margin-top: 18px;
+    margin-right: 15px;
+    position: relative;
+    right: 15px;
+    top: 0;
+}
+
+#delay-slider {
+    margin-top: 21px;
+}
+
+.file-list {
+    background-color: #EEEBE4;
+    width: 46%;
+    position: relative;
+    float: left;
+    margin-left: 3%;
+    margin-right: 1%;
+}
+
+    .file-list > .selected {
+        background-color: #574E4A;
+    }
+
+.contact-list {
+    background-color: #EEEBE4;
+    width: 46%;
+    position: relative;
+    float: right;
+    margin-left: 1%;
+    margin-right: 3%;
 }
 
 .contact {
+    background-color: #262220;
     border-bottom: solid 5px #EEEBE4;
     /*padding: 5px;*/
     height: 45px;
@@ -140,7 +180,7 @@ button {
 
     .contact .email {
         margin-left: 18px;
-        max-width: 220px;
+        max-width: 300px;
         font-weight: bold;
         display: inline-block;
         margin-top: 15px;
@@ -181,16 +221,24 @@ button {
         position: absolute;
     }
 
-    .contact[data-available=true] .status {
+    .contact[status=connected] .status {
+        background-color: teal;
+    }
+
+    .contact[status=timeout] .status {
+        background-color: darkred;
+    }
+
+    .contact[status=pinned] .status {
         background-color: limegreen;
     }
 
-    .contact[data-available=false] {
-        display: none;
+    .contact[status=local] .status {
+        background-color: orange;
     }
 
-    .contact[data-available=false] .status {
-        background-color: red;
+    .contact[status=remote] .status {
+        background-color: darkred;
     }
 
     .contact .progress {
@@ -199,10 +247,7 @@ button {
         margin-right: 5px;
     }
 
-/**
-	Login area
- **/
-
+/* Login area */
 .login-area {
     display: none;
 }

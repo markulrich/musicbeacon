@@ -1,28 +1,42 @@
-function AudioManager(peerTime) {
-    this.peerTime = peerTime;
-    this.clips = {};
+function AudioManager(client) {
+  this.peerTime = client.peerTime;
+  this.playBuffer = {};
+  this.playing = {};
 }
 
 AudioManager.prototype = {
-    audioCtx: new (window.AudioContext || window.webkitAudioContext)(),
+  audioCtx: new (window.AudioContext || window.webkitAudioContext)(),
 
-    addClip: function(fileManager) {
-        var self = this;
-        var source = this.audioCtx.createBufferSource();
-        fileManager.loadArrayBuffer(function (arrayBuffer) {
-            self.audioCtx.decodeAudioData(arrayBuffer, function (buffer) {
-                source.buffer = buffer;
-                source.connect(self.audioCtx.destination);
-                var diff = (self.peerTime.currTime() - fileManager.playTime) / 1000;
-                if (diff >= 0) {
-                    console.log('Staring playback at', diff);
-                    source.start(0, diff);
-                } else {
-                    console.error('Why is this happenning?? Did we implement play after delay when currently playing?');
-                    source.start(-diff, 0);
-                }
-                // TODO add to pool self.clips
-            });
-        });
+  bufferPlay: function (fileId, playTime) {
+    this.playBuffer[fileId] = playTime;
+  },
+
+  onFileReceived: function (fileId, buffer) {
+    if (fileId in this.playBuffer) {
+      this.playFile(fileId, buffer, this.playBuffer[fileId]);
     }
+  },
+
+  playFile: function (fileId, encodedBuffer, playTime) {
+    var self = this;
+    var source = this.audioCtx.createBufferSource();
+    delete this.playBuffer[fileId];
+
+    self.audioCtx.decodeAudioData(encodedBuffer, function (buffer) {
+      source.buffer = buffer;
+      source.connect(self.audioCtx.destination);
+      var diff = (self.peerTime.currTime() - playTime) / 1000;
+      source.start(0, diff);
+      console.log("Starting playback of", fileId, "at", diff);
+      self.playing[playTime] = source;
+    });
+  },
+
+  stop: function () {
+    var minTime = _.min(_.map(this.playing, function (source, playTime) { return playTime }));
+    if (minTime !== Infinity) {
+      this.playing[minTime].stop();
+      delete this.playing[minTime];
+    }
+  }
 };

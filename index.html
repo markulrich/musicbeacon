@@ -11,22 +11,34 @@
     <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-<script type="text/template" id="contact-template">
-    <div id="contact-<%= email %>" class="contact" data-available="<%= available %>">
+<script type="text/template" id="template">
+    <div id="contact-<%= email %>" class="contact" status="<%= status %>" file-id="<%= fileId %>">
         <div class="status"></div>
         <p class="email"><%= email %></p>
         <canvas class="progress" width="36" height="36"></canvas>
-        <button disabled="disabled" class="cancel">Cancel</button>
-        <button disabled="disabled" class="get">Get File</button>
-        <input type="file" disabled="disabled" class="share hidden"/>
     </div>
 </script>
 
 <div class="top-bar">
-    <h1 class="title">MusicBeacon</h1>
+    <button style="background-color: limegreen" class="topbar-button">Pinned</button>
+    <button style="background-color: orange" class="topbar-button">Cached</button>
+    <button style="background-color: darkred" class="topbar-button">Remote</button>
+    <h1 class="title">Fun With Chords</h1>
+    <button style="background-color: teal" class="topbar-button-right">Connected</button>
+    <button style="background-color: darkred" class="topbar-button-right">Timeout</button>
+</div>
+
+<div class="top-bar">
+    <button id="upload-button" class="topbar-button">Upload</button>
+    <input id="upload-input" type="file" class="share hidden" name="Upload">
+    <button id="fetch-button" class="topbar-button">Fetch</button>
+    <button id="play-button" class="topbar-button">Play</button>
+    <button id="stop-button" class="topbar-button">Stop</button>
+    <input type="range" id="delay-slider" class="topbar-button hidden" value="0" min="0" max="5">
     <p class="my-email"></p>
 </div>
 
+<div class="file-list"></div>
 <div class="contact-list"></div>
 
 <a id="download"></a>
@@ -46,7 +58,9 @@
 <script src="./file-manager.js"></script>
 <script src="./audio-manager.js"></script>
 <script src="./peer-time.js"></script>
+<script src="./file-store.js"></script>
 <script src="./connection.js"></script>
-<script src="./main.js"></script>
+<script src="./dht.js"></script>
+<script src="./client.js"></script>
 </body>
 </html>

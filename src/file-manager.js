@@ -21,10 +21,10 @@ function FileManager() {
   this.fileName = null;
   this.fileType = null;
   this.pinned = false;
-};
+}
 
 FileManager.prototype = {
-  stageLocalFile: function (fileId, buffer) {
+  stageLocalFile: function(fileId, buffer) {
     this.fileId = fileId;
     var nChunks = Math.ceil(buffer.byteLength / CHUNK_SIZE);
     this.fileChunks = new Array(nChunks);
@@ -35,7 +35,7 @@ FileManager.prototype = {
     }
   },
 
-  stageRemoteFile: function (fileId, fileName, fileType, pinned, nChunks) {
+  stageRemoteFile: function(fileId, fileName, fileType, pinned, nChunks) {
     this.fileId = fileId;
     this.fileName = fileName;
     this.fileType = fileType;
@@ -52,12 +52,12 @@ FileManager.prototype = {
     }
   },
 
-  receiveChunk: function (data) {
+  receiveChunk: function(data) {
     if (!this.fileChunks[data.id]) {
       this.fileChunks[data.id] = Base64Binary.decode(data.content);
       this.nChunksReceived++;
       this.numRequested--;
-      if (typeof (this.onprogress) == "function") {
+      if (typeof (this.onprogress) == 'function') {
         this.onprogress(this.nChunksReceived / this.nChunksExpected);
       }
       if (!this.transferComplete()) {
@@ -71,7 +71,7 @@ FileManager.prototype = {
     }
   },
 
-  requestChunks: function () {
+  requestChunks: function() {
     var self = this;
     var chunks = [];
     var n = 0;
@@ -90,7 +90,7 @@ FileManager.prototype = {
      ***/
     this.onrequestready(this.fileId, chunks);
 
-    this.chunkTimeout = setTimeout(function () {
+    this.chunkTimeout = setTimeout(function() {
       var expired = 0;
       for (var i in chunks) {
         var id = chunks[i];
@@ -106,11 +106,11 @@ FileManager.prototype = {
     }, this.expireTime);
   },
 
-  transferComplete: function () {
+  transferComplete: function() {
     return (this.nChunksExpected == this.nChunksReceived);
   },
 
-  loadArrayBuffer: function (onload) {
+  loadArrayBuffer: function(onload) {
     var reader = new FileReader();
     reader.onload = function(e) {
       onload(reader.result);
@@ -122,15 +122,15 @@ FileManager.prototype = {
     return new Blob(this.fileChunks, { type: this.type });
   },
 
-  download: function () {
+  download: function() {
     var blob = getBlob();
-    var link = document.querySelector("#download");
+    var link = document.querySelector('#download');
     link.href = window.URL.createObjectURL(blob);
     link.download = this.fileName;
     link.click();
   },
 
-  clear: function () {
+  clear: function() {
     this.fileName = null;
     this.buffer = null;
     clearTimeout(this.chunkTimeout);

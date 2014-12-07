@@ -25,7 +25,7 @@ var PeerTime = (function() {
 
   PeerTime.prototype = {
     REFRESH: 1500,
-    MAX_RTT: 500,
+    MAX_RTT: 700,
     TENTHS_NS_PER_MS: 10000,
     TAKE_BEST: 4,
     MOVING_WINDOW: 10,

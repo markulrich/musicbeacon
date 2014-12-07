@@ -45,9 +45,8 @@
 
   Client.prototype = {
     createCallbacks: function() {
-      var self = this;
       this.uploadFile = function() {
-        var file = self.fileInput[0].files[0];
+        var file = this.fileInput[0].files[0];
         if (!file) return;
 
         var mbSize = file.size / (1024 * 1024);
@@ -59,121 +58,129 @@
         var reader = new FileReader();
         reader.onloadend = function(e) {
           if (reader.readyState !== FileReader.DONE) return;
-          var fileId = self.fileStore.generateFileId(file);
-          var replicas = self.dht.getReplicaIds(fileId);
-          var pinned = _.contains(replicas, self.uuid);
-          self.fileStore.put(fileId, file.name, file.type, reader.result, pinned);
+          var fileId = this.fileStore.generateFileId(file);
+          var replicas = this.dht.getReplicaIds(fileId);
+          var pinned = _.contains(replicas, this.uuid);
+          this.fileStore.put(fileId, file.name, file.type, reader.result, pinned);
 
           console.log('Replicating file to', replicas);
-          _.each(self.connections, function(conn) {
+          _.each(this.connections, function(conn) {
             if (!conn.available) return;
             if (_.contains(replicas, conn.id)) {
               conn.offerShare(fileId, true);
             } else {
               conn.sendFileEntry(fileId, file.name);
             }
-          });
-        };
+          }.bind(this));
+        }.bind(this);
         reader.readAsArrayBuffer(file);
-      };
-      this.broadcastPlay = function(fileId) {
-        var playTime = self.peerTime.currTime();
+      }.bind(this);
 
-        if (self.fileStore.hasLocalId(fileId)) {
-          self.audioManager.playFile(fileId, self.fileStore.get(fileId).buffer, playTime);
+      this.broadcastPlay = function(fileId) {
+        var playTime = this.peerTime.currTime();
+
+        if (this.fileStore.hasLocalId(fileId)) {
+          this.audioManager.playFile(fileId, this.fileStore.get(fileId).buffer, playTime);
         } else {
-          self.audioManager.bufferPlay(fileId, playTime);
-          self.requestFile(fileId, false);
+          this.audioManager.bufferPlay(fileId, playTime);
+          this.requestFile(fileId, false);
         }
 
-        _.each(self.connections, function(conn) {
+        _.each(this.connections, function(conn) {
           if (conn.available) conn.sendPlay(fileId, playTime);
         });
       }.bind(this);
       this.requestFile = function(fileId, pinned) {
-        var replicas = self.dht.getReplicaIds(fileId);
-        replicas = _.filter(replicas, function(nodeId) { return nodeId !== self.uuid; });
+        var replicas = this.dht.getReplicaIds(fileId);
+        replicas = _.filter(replicas, function(nodeId) {
+          return nodeId !== this.uuid;
+        }.bind(this));
         // TODO: weight by best rtt (ggp exploration?)
         var replica = replicas[Math.floor(Math.random() * replicas.length)];
-        self.connections[replica].requestFile(fileId, pinned);
-      };
+        this.connections[replica].requestFile(fileId, pinned);
+      }.bind(this);
 
       // DHT maintenance
       this.updateIndex = function() {
-        for (var fileId in self.fileStore.kvstore) {
-          var replicas = self.dht.getReplicaIds(fileId);
+        for (var fileId in this.fileStore.kvstore) {
+          var replicas = this.dht.getReplicaIds(fileId);
           var f;
-          if (_.contains(replicas, self.uuid)) {
-            if (!self.fileStore.hasLocalId(fileId)) {
+          if (_.contains(replicas, this.uuid)) {
+            if (!this.fileStore.hasLocalId(fileId)) {
               console.log('Assuming responsibility for', fileId);
-              self.requestFile(fileId, true);
+              this.requestFile(fileId, true);
             } else {
-              f = self.fileStore.get(fileId);
+              f = this.fileStore.get(fileId);
               f.pinned = true;
               f.updateElement();
             }
           } else {
-            if (self.fileStore.hasLocalId(fileId)) {
-              f = self.fileStore.get(fileId);
+            if (this.fileStore.hasLocalId(fileId)) {
+              f = this.fileStore.get(fileId);
               f.pinned = false;
               f.updateElement();
             }
           }
         }
-      };
+      }.bind(this);
       this.handleJoin = function(nodeId) {
-        self.dht.addNode(nodeId);
-        self.updateIndex();
-      };
+        this.dht.addNode(nodeId);
+        this.updateIndex();
+      }.bind(this);
       this.handleLeave = function(nodeId) {
-        self.dht.removeNode(nodeId);
-        delete self.connections[nodeId];
-        self.updateIndex();
-      };
+        this.dht.removeNode(nodeId);
+        delete this.connections[nodeId];
+        this.updateIndex();
+      }.bind(this);
 
       // Bootstrapping
       this.checkBootstrapComplete = function() {
-        if (!self.bootstrapping || self.bootstrapped) return;
+        if (!this.bootstrapping || this.bootstrapped) return;
         var bootstrapComplete = true;
-        _.each(self.bootstrappedNodes, function(nodeId) {
-          if (nodeId != self.uuid && !self.connections[nodeId]) bootstrapComplete = false;
-        });
+        _.each(this.bootstrappedNodes, function(nodeId) {
+          if (nodeId != this.uuid && !this.connections[nodeId]) bootstrapComplete = false;
+        }.bind(this));
 
         if (bootstrapComplete) {
           console.log('Finished bootstrapping');
-          self.bootstrapped = true;
-          _.each(self.connections, function(conn) { conn.bootstrapJoin(); });
-          self.updateIndex();
+          this.bootstrapped = true;
+          _.each(this.connections, function(conn) { conn.bootstrapJoin(); });
+          this.updateIndex();
         }
-      };
+      }.bind(this);
+
       this.handleBootstrapReply = function(replyNodeId, data) {
-        if (self.bootstrapping || self.bootstrapped) return;
-        self.bootstrapping = true;
-        self.bootstrappedNodes = data.nodes;
-        _.each(data.nodes, function(nodeId) { self.dht.addNode(nodeId); });
-        _.each(data.files, function(f) { self.fileStore.put(f.fileId, f.fileName, null, null, false); });
-        self.checkBootstrapComplete();
-      };
+        if (this.bootstrapping || this.bootstrapped) return;
+        this.bootstrapping = true;
+        this.bootstrappedNodes = data.nodes;
+        _.each(data.nodes, function(nodeId) { this.dht.addNode(nodeId); }.bind(this));
+        _.each(data.files, function(f) {
+          this.fileStore.put(f.fileId, f.fileName, null, null, false);
+        }.bind(this));
+        this.checkBootstrapComplete();
+      }.bind(this);
+
       this.setupBootstrap = function() {
-        if (self.bootstrapping || self.bootstrapped) return;
-        var nodeIds = _.map(self.connections, function(conn, nodeId) { return nodeId; });
+        if (this.bootstrapping || this.bootstrapped) return;
+        var nodeIds = _.map(this.connections, function(conn, nodeId) { return nodeId; });
         if (nodeIds.length > 0) {
           console.log('Setting up bootstrap');
           var nodeId = nodeIds[Math.floor(Math.random() * nodeIds.length)];
-          self.connections[nodeId].requestBootstrap();
+          this.connections[nodeId].requestBootstrap();
         }
-        self.scheduleBootstrap();
-      };
+        this.scheduleBootstrap();
+      }.bind(this);
+
       this.scheduleBootstrap = function() {
         setTimeout(function() {
-          self.setupBootstrap();
-        }, 1000);
-      };
+          this.setupBootstrap();
+        }.bind(this), 1000);
+      }.bind(this);
+
       this.scheduleBootstrap();
     },
 
     registerUIEvents: function() {
-      var self = this;
       this.getSelectedFileId = function() {
         var selectedFileElement = $('.file-list .selected');
         if (selectedFileElement.length === 0) {
@@ -182,26 +189,26 @@
         }
         return selectedFileElement.attr('file-id');
       };
-      this.uploadButton.click(function() { self.fileInput.click(); });
-      this.fileInput.change(function() { self.uploadFile(); });
+      this.uploadButton.click(function() { this.fileInput.click(); }.bind(this));
+      this.fileInput.change(function() { this.uploadFile(); }.bind(this));
       this.fetchButton.click(function() {
-        var fileId = self.getSelectedFileId();
-        if (fileId) self.requestFile(fileId, false);
-      });
+        var fileId = this.getSelectedFileId();
+        if (fileId) this.requestFile(fileId, false);
+      }.bind(this));
       this.playButton.click(function() {
-        var fileId = self.getSelectedFileId();
-        if (fileId) self.broadcastPlay(fileId);
-      });
-      this.stopButton.click(function() { self.audioManager.stop(); });
+        var fileId = this.getSelectedFileId();
+        if (fileId) this.broadcastPlay(fileId);
+      }.bind(this));
+      this.stopButton.click(function() { this.audioManager.stop(); }.bind(this));
       this.selectableTemplate = function(input) {
-        var element = $(self.template(input));
+        var element = $(this.template(input));
         element.click(function() {
-          if (self.selected) self.selected.removeClass('selected');
+          if (this.selected) this.selected.removeClass('selected');
           element.addClass('selected');
-          self.selected = element;
-        });
+          this.selected = element;
+        }.bind(this));
         return element;
-      };
+      }.bind(this);
     },
 
     localLogin: function(name) {
@@ -235,10 +242,10 @@
     },
 
     handleSignal: function(msg) {
-      var self = this;
       // Don't care about messages we send
-      if (msg.uuid !== this.uuid && msg.target === this.uuid && msg.uuid in self.connections) {
-        self.connections[msg.uuid].handleSignal(msg);
+      if (msg.uuid !== this.uuid && msg.target === this.uuid &&
+          msg.uuid in this.connections) {
+        this.connections[msg.uuid].handleSignal(msg);
       }
     },
 

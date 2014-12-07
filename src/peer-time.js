@@ -4,19 +4,18 @@
  */
 
 function PeerTime(pubnub, mode) {
-  this.mode = mode || "moving";
+  this.mode = mode || 'moving';
   this.drift = 0;
   this.drifts = [];
   this.pubnub = pubnub;
   this.numSyncs = 0;
 
   if (!(this.mode in this.driftAlgos)) {
-    throw new Error("Invalid mode", this.mode);
-    this.mode = "none";
+    throw new Error('Invalid mode', this.mode);
   }
 
   var self = this;
-  window.setInterval(function () {
+  window.setInterval(function() {
     self.syncDrift();
   }, this.REFRESH);
 }
@@ -29,28 +28,28 @@ PeerTime.prototype = {
   EWMA_DECAY: 0.90,
 
   driftAlgos: {
-    total: function (currDrift) {
+    total: function(currDrift) {
       this.drifts.push(currDrift);
     },
-    moving: function (currDrift) {
+    moving: function(currDrift) {
       this.drifts.push(currDrift);
       if (this.drifts.length > this.MOVING_WINDOW) this.drifts.shift();
       this.drift = this.avgDrift();
     },
-    exponential: function (currDrift) {
+    exponential: function(currDrift) {
       if (this.numSyncs === 0) this.drift = currDrift;
       return this.EWMA_DECAY * this.drift + (1 - this.EWMA_DECAY) * currDrift;
     },
-    none: function () {
+    none: function() {
       return 0;
     }
   },
 
-  syncDrift: function () {
+  syncDrift: function() {
     var self = this;
     var startTime = new Date().getTime();
     this.pubnub.time(
-      function (serverTimeTenthsNs) {
+      function(serverTimeTenthsNs) {
         var serverTime = serverTimeTenthsNs / self.TENTHS_NS_PER_MS;
         if (serverTime === 0) {
           // console.error("Failed to return server.time result");
@@ -60,7 +59,7 @@ PeerTime.prototype = {
         var currTime = new Date().getTime();
         var roundTripTime = currTime - startTime;
         if (roundTripTime > self.MAX_TIMEOUT) {
-          console.error("Latency too high to compute drift:", roundTripTime);
+          console.error('Latency too high to compute drift:', roundTripTime);
           return;
         }
 
@@ -71,11 +70,11 @@ PeerTime.prototype = {
     );
   },
 
-  avgDrift: function () {
-    return _.reduce(this.drifts, function (a, b) { return a + b; }) / this.drifts.length;
+  avgDrift: function() {
+    return _.reduce(this.drifts, function(a, b) { return a + b; }) / this.drifts.length;
   },
 
-  currTime: function () {
+  currTime: function() {
     return new Date().getTime() + this.drift;
   }
 };

@@ -8,13 +8,13 @@
  *   fileIds are human-readable handles for files
  *   key refers to a location on the DHT keyspace and is a hashed id.
  */
-var DHT = (function () {
+var DHT = (function() {
   var DHT_N = 10000;        // Keyspace max
   var DHT_R = 5;            // Replication factor
 
   function DHT(client) {
     this.uuid = client.uuid;
-    hashedid = this.hash(client.uuid)
+    hashedid = this.hash(client.uuid);
 
     // Maintain the invariant that this.nodes is always sorted.
     this.nodes = [hashedid];
@@ -25,30 +25,30 @@ var DHT = (function () {
   }
 
   DHT.prototype = {
-    hash: function (str) {
-      return _.reduce(str, function (h, c) {
+    hash: function(str) {
+      return _.reduce(str, function(h, c) {
         return (h * 37 + c.charCodeAt(0)) % DHT_N;
       }, 5381);
     },
 
-    addNode: function (nodeId) {
+    addNode: function(nodeId) {
       var h = this.hash(nodeId);
       if (h in this.reverseMap) return;
       this.reverseMap[h] = nodeId;
 
       var i = this.getSuccessorIndex(h);
-      if (i == 0 && h > this.nodes[0]) i = this.nodes.length;
+      if (i === 0 && h > this.nodes[0]) i = this.nodes.length;
       this.nodes.splice(i, 0, h);
     },
 
-    removeNode: function (nodeId) {
+    removeNode: function(nodeId) {
       delete this.reverseMap[nodeId];
       var h = this.hash(nodeId);
       var i = this.nodes.indexOf(h);
       if (i >= 0) this.nodes.splice(i, 1);
     },
 
-    getSuccessorIndex: function (key) {
+    getSuccessorIndex: function(key) {
       var i;
       for (i = this.nodes.length - 1; i >= 0; i--) {
         if (this.nodes[i] < key) return (i + 1) % this.nodes.length;
@@ -56,7 +56,7 @@ var DHT = (function () {
       return 0;
     },
 
-    getReplicaIds: function (fileId) {
+    getReplicaIds: function(fileId) {
       var self = this;
       var replicaKeys;
 
@@ -69,9 +69,9 @@ var DHT = (function () {
         replicaKeys = this.nodes.slice(start, start + DHT_R).concat(this.nodes.slice(0, overflow));
       }
 
-      return _.map(replicaKeys, function (replicaKey) { return self.reverseMap[replicaKey]; });
+      return _.map(replicaKeys, function(replicaKey) { return self.reverseMap[replicaKey]; });
     }
-  }
+  };
 
   return DHT;
 })();

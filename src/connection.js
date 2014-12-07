@@ -1,21 +1,21 @@
-﻿var Connection = (function () {
-  "use strict";
+﻿var Connection = (function() {
+  'use strict';
 
-  var HOSTED = window.location.protocol !== "file:";
+  var HOSTED = window.location.protocol !== 'file:';
   var protocol = {
-    CHANNEL: "get-my-filez3",
-    OFFER: "offer",
-    ANSWER: "answer",
-    CANCEL: "cancel",
-    REQUEST_CHUNK: "req-chunk",
-    DATA: "data",
-    DONE: "done",
-    PLAY: "play",
-    FILE_ENTRY: "file-entry",
-    REQUEST_FILE: "req-file",
-    REQUEST_BOOTSTRAP: "req-boot",
-    REPLY_BOOTSTRAP: "rep-boot",
-    BOOTSTRAP_JOIN: "boot-join"
+    CHANNEL: 'get-my-filez3',
+    OFFER: 'offer',
+    ANSWER: 'answer',
+    CANCEL: 'cancel',
+    REQUEST_CHUNK: 'req-chunk',
+    DATA: 'data',
+    DONE: 'done',
+    PLAY: 'play',
+    FILE_ENTRY: 'file-entry',
+    REQUEST_FILE: 'req-file',
+    REQUEST_BOOTSTRAP: 'req-boot',
+    REPLY_BOOTSTRAP: 'rep-boot',
+    BOOTSTRAP_JOIN: 'boot-join'
   };
 
 
@@ -24,7 +24,7 @@
     this.uuid = client.uuid;    // Local id
     this.id = email;            // Target id
     this.element = element;     // UI handler. Messy but effective
-    this.progress = element.querySelector(".progress");
+    this.progress = element.querySelector('.progress');
     this.p2pEstablished = false;
     this.pubnub = pubnub;
     this.allConnections = client.allConnections;
@@ -35,22 +35,22 @@
     this.createFileCallbacks();
     this.initProgress();
 
-    this.debug = function (msg) {
-      console.log("<" + this.id + "> " + msg);
+    this.debug = function(msg) {
+      console.log('<' + this.id + '> ' + msg);
     };
   }
 
   Connection.prototype = {
     updateElement: function() {
       if (this.timeout) {
-        $(this.element).attr("status", "timeout");
+        $(this.element).attr('status', 'timeout');
         this.updateProgress(0);
       } else {
-        $(this.element).attr("status", "connected");
+        $(this.element).attr('status', 'connected');
       }
     },
 
-    bootstrapJoin: function () {
+    bootstrapJoin: function() {
       // this.debug("Bootstrap joining");
       this.pubnub.publish({
         channel: protocol.CHANNEL,
@@ -62,12 +62,12 @@
       });
     },
 
-    replyBootstrap: function () {
-      this.debug("Responding to bootstrap");
-      var nodes = _.map(this.client.connections, function (conn, nodeId) {
+    replyBootstrap: function() {
+      this.debug('Responding to bootstrap');
+      var nodes = _.map(this.client.connections, function(conn, nodeId) {
         return nodeId;
       }).concat(this.uuid);
-      var files = _.map(this.client.fileStore.kvstore, function (f) {
+      var files = _.map(this.client.fileStore.kvstore, function(f) {
         return { fileId: f.id, fileName: f.name };
       });
       this.pubnub.publish({
@@ -84,8 +84,8 @@
       });
     },
 
-    requestBootstrap: function () {
-      this.debug("Requesting bootstrap");
+    requestBootstrap: function() {
+      this.debug('Requesting bootstrap');
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -96,8 +96,8 @@
       });
     },
 
-    requestFile: function (fileId, pinned) {
-      this.debug("Requesting " + fileId);
+    requestFile: function(fileId, pinned) {
+      this.debug('Requesting ' + fileId);
       if (this.fileStreams[fileId]) {
         this.fileStreams[fileId].pinned |= pinned;
         return;
@@ -115,8 +115,8 @@
       });
     },
 
-    sendFileEntry: function (fileId, fileName) {
-      this.debug("Sending empty file entry " + fileId);
+    sendFileEntry: function(fileId, fileName) {
+      this.debug('Sending empty file entry ' + fileId);
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -129,8 +129,8 @@
       });
     },
 
-    sendPlay: function (fileId, playTime) {
-      this.debug("Sending play for " + fileId);
+    sendPlay: function(fileId, playTime) {
+      this.debug('Sending play for ' + fileId);
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -138,13 +138,13 @@
           target: this.id,
           fileId: fileId,
           playTime: playTime,
-          action: protocol.PLAY,
+          action: protocol.PLAY
         }
       });
     },
 
-    offerShare: function (fileId, pinned) {
-      this.debug("Offering share of " + fileId);
+    offerShare: function(fileId, pinned) {
+      this.debug('Offering share of ' + fileId);
       if (this.fileStreams[fileId]) {
         this.fileStreams[fileId].pinned |= pinned;
         return;
@@ -165,13 +165,13 @@
           fileType: f.type,
           nChunks: manager.fileChunks.length,
           pinned: pinned,
-          action: protocol.OFFER,
+          action: protocol.OFFER
         }
       });
     },
 
-    answerShare: function (fileId) {
-      this.debug("Answering share of " + fileId);
+    answerShare: function(fileId) {
+      this.debug('Answering share of ' + fileId);
       // Tell other node to join the P2P channel if not already on
       this.pubnub.publish({
         channel: protocol.CHANNEL,
@@ -186,8 +186,8 @@
       this.fileStreams[fileId].requestChunks();
     },
 
-    cancelShare: function (fileId) {
-      this.debug("Cancelling share of" + fileId);
+    cancelShare: function(fileId) {
+      this.debug('Cancelling share of' + fileId);
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         message: {
@@ -199,7 +199,7 @@
       });
     },
 
-    send: function (data) {
+    send: function(data) {
       this.pubnub.publish({
         channel: protocol.CHANNEL,
         user: this.id,
@@ -207,7 +207,7 @@
       });
     },
 
-    packageChunk: function (fileId, chunkId) {
+    packageChunk: function(fileId, chunkId) {
       return JSON.stringify({
         action: protocol.DATA,
         fileId: fileId,
@@ -216,9 +216,9 @@
       });
     },
 
-    handleSignal: function (msg) {
+    handleSignal: function(msg) {
       if (msg.action === protocol.OFFER) {
-        this.debug("Received remote offer for " + msg.fileId);
+        this.debug('Received remote offer for ' + msg.fileId);
         if (this.client.fileStore.hasLocalId(msg.fileId)) {
           this.cancelShare(msg.fileId);
         } else {
@@ -233,9 +233,9 @@
         this.debug('Share canceled.');
         delete this.fileStreams[msg.fileId];
       } else if (msg.action === protocol.PLAY) {
-        this.debug("Received remote play for " + msg.fileId);
+        this.debug('Received remote play for ' + msg.fileId);
         if (!this.client.fileStore.hasLocalId(msg.fileId)) {
-          this.debug("Not replicated here...fetching data for " + msg.fileId);
+          this.debug('Not replicated here...fetching data for ' + msg.fileId);
           this.client.audioManager.bufferPlay(msg.fileId, msg.playTime);
           this.client.requestFile(msg.fileId);
         } else {
@@ -257,9 +257,9 @@
       }
     },
 
-    handlePresence: function (msg) {
-      this.debug("Connection handling presence msg: " + msg.action);
-      if (msg.action === "join") {
+    handlePresence: function(msg) {
+      this.debug('Connection handling presence msg: ' + msg.action);
+      if (msg.action === 'join') {
         this.available = true;
         if (this.timeout) {
           this.timeout = false;
@@ -268,12 +268,12 @@
           // Can't bootstrap on join because target might not have connection
           this.client.checkBootstrapComplete();
         }
-      } else if (msg.action === "timeout") {
+      } else if (msg.action === 'timeout') {
         // TODO: kick out after multiple timeouts
         this.available = false;
         this.timeout = true;
         this.updateElement();
-      } else if (msg.action === "leave") {
+      } else if (msg.action === 'leave') {
         $(this.element).hide();
         this.client.handleLeave(this.id);
         for (var fileId in this.fileStreams) {
@@ -282,7 +282,7 @@
       }
     },
 
-    p2pSetup: function () {
+    p2pSetup: function() {
       if (this.p2pEstablished) return;
       this.p2pEstablished = true;
 
@@ -295,30 +295,30 @@
       var self = this;
     },
 
-    createChannelCallbacks: function () {
+    createChannelCallbacks: function() {
       var self = this;
-      this.onP2PMessage = function (data) {
-        this.debug("P2P message: ", data.action);
+      this.onP2PMessage = function(data) {
+        self.debug('P2P message: ', data.action);
         if (data.action === protocol.DATA) {
           self.fileStreams[data.fileId].receiveChunk(data);
         } else if (data.action === protocol.REQUEST_CHUNK) {
           self.nChunksSent += data.ids.length;
           self.updateProgress(data.nReceived / self.fileStreams[data.fileId].fileChunks.length);
-          data.ids.forEach(function (id) {
+          data.ids.forEach(function(id) {
             self.send(self.packageChunk(data.fileId, id));
           });
         } else if (data.action === protocol.DONE) {
           var t = (Date.now() - self.fileStreams[data.fileId].started) / 1000;
-          self.debug("Share of " + data.fileId + " took " + t + " seconds");
+          self.debug('Share of ' + data.fileId + ' took ' + t + ' seconds');
           delete self.fileStreams[data.fileId];
           self.reset();
         }
       };
     },
 
-    createFileCallbacks: function () {
+    createFileCallbacks: function() {
       var self = this;
-      this.chunkRequestReady = function (fileId, chunks) {
+      this.chunkRequestReady = function(fileId, chunks) {
         // this.debug("Chunks ready: ", chunks.length);
         self.send(JSON.stringify({
           action: protocol.REQUEST_CHUNK,
@@ -327,9 +327,9 @@
           nReceived: self.fileStreams[fileId].nChunksReceived
         }));
       };
-      this.transferComplete = function (fileId) {
-        self.debug("Last chunk of " + fileId + " received.");
-        console.log("FINISHED! " + self.client.peerTime.currTime());
+      this.transferComplete = function(fileId) {
+        self.debug('Last chunk of ' + fileId + ' received.');
+        console.log('FINISHED! ' + self.client.peerTime.currTime());
         var m = self.fileStreams[fileId];
         m.loadArrayBuffer(function(buffer) {
           var pinned = m.pinned || self.client.fileStore.hasLocalId(fileId);
@@ -345,7 +345,7 @@
       };
     },
 
-    setupFileManager: function () {
+    setupFileManager: function() {
       var manager = new FileManager();
       manager.onrequestready = this.chunkRequestReady;
       manager.onprogress = this.updateProgress;
@@ -353,7 +353,7 @@
       return manager;
     },
 
-    initProgress: function () {
+    initProgress: function() {
       var self = this;
       var ctx = this.progress.getContext('2d');
       var imd = null;
@@ -370,7 +370,7 @@
 
       imd = ctx.getImageData(0, 0, 36, 36);
 
-      this.updateProgress = function (percent) {
+      this.updateProgress = function(percent) {
         ctx.putImageData(imd, 0, 0);
         ctx.beginPath();
         ctx.arc(18, 18, 7, -(quart), ((circ) * percent) - quart, false);
@@ -378,7 +378,7 @@
       };
     },
 
-    reset: function () {
+    reset: function() {
       this.updateProgress(0);
     }
   };

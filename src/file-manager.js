@@ -1,4 +1,6 @@
 ﻿var FileManager = (function() {
+  'use strict';
+
   var IS_CHROME = !!window.webkitRTCPeerConnection;
   var CHUNK_SIZE = (IS_CHROME ? 800 : 50000);
 

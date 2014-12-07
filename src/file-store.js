@@ -6,6 +6,8 @@
  * However, not all file data is stored locally.
  */
 var FileStore = (function() {
+  'use strict';
+
   function FileStore(client) {
     // UI elements
     this.fileList = client.fileList;

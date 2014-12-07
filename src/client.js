@@ -3,6 +3,7 @@
  */
 
 (function() {
+  'use strict';
   var HOST = 'localhost:8000/index.html';
   var HOSTED = window.location.protocol !== 'file:';
   var USING_GOOGLE = false;

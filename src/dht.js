@@ -9,6 +9,8 @@
  *   key refers to a location on the DHT keyspace and is a hashed id.
  */
 var DHT = (function() {
+  'use strict';
+
   var DHT_N = 10000;        // Keyspace max
   var DHT_R = 5;            // Replication factor
 

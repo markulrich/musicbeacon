@@ -1,6 +1,10 @@
 (function() {
   'use strict';
 
+  /**
+   * Entry point of the application
+   */
+
   var HOST = 'localhost:8000/index.html';
   if (window.location.host == HOST && window.location.protocol != 'https:') {
     window.location.protocol = 'https:';
@@ -16,7 +20,7 @@
     var animal = animals[Math.floor(Math.random() * animals.length)];
     var adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
     adjective = adjective[0].toUpperCase() + adjective.slice(1);
-    client.localLogin(adjective + ' ' + animal);
+    client.login(adjective + ' ' + animal);
   });
 
   $('.login-area').fadeIn();

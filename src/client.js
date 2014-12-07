@@ -1,8 +1,5 @@
 ﻿var Client = (function() {
   'use strict';
-  /**
-   * Main entry point for the application
-   */
 
   var MAX_FSIZE = 160; // MB - browser memory limit
   var DEFAULT_CHANNEL = 'get-my-filez3';
@@ -10,6 +7,9 @@
   var SUB_KEY = 'sub-c-60fc9a74-6f61-11e4-b563-02ee2ddab7fe';
   var pubnub;
 
+  /**
+   * A peer node in the system
+   */
   function Client() {
     this.connections = {};
 
@@ -211,7 +211,7 @@
       }.bind(this);
     },
 
-    localLogin: function(name) {
+    login: function(name) {
       pubnub = PUBNUB.init({
         publish_key: PUB_KEY,
         subscribe_key: SUB_KEY,

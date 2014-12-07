@@ -233,12 +233,12 @@
         callback: this.handleSignal.bind(this),
         presence: this.handlePresence.bind(this)
       });
+    },
 
-      window.onbeforeunload = function() {
-        pubnub.unsubscribe({
-          channel: DEFAULT_CHANNEL
-        });
-      };
+    logout: function() {
+      pubnub.unsubscribe({
+        channel: DEFAULT_CHANNEL
+      });
     },
 
     handleSignal: function(msg) {

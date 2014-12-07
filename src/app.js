@@ -20,8 +20,13 @@
     var animal = animals[Math.floor(Math.random() * animals.length)];
     var adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
     adjective = adjective[0].toUpperCase() + adjective.slice(1);
+
     client.login(adjective + ' ' + animal);
   });
+
+  window.onbeforeunload = function() {
+    client.logout();
+  };
 
   $('.login-area').fadeIn();
   window.client = client; // Expose for debug

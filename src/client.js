@@ -285,8 +285,8 @@
   var SUB_KEY = "sub-c-60fc9a74-6f61-11e4-b563-02ee2ddab7fe";
 
   var client = createClient();
-  var animals = $.get("animals.json");
-  var adjectives = $.get("adjectives.json");
+  var animals = $.get("data/animals.json");
+  var adjectives = $.get("data/adjectives.json");
   $.when(animals, adjectives).done(function (animals, adjectives) {
     animals = animals[0];
     adjectives = adjectives[0];

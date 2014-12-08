@@ -60,16 +60,13 @@
           if (reader.readyState !== FileReader.DONE) return;
 
           var fileId = this.fileStore.generateFileId(reader.result);
-          if (this.fileStore.hasId(fileId)) {
-            toastr.error('Duplicate upload of ' + this.fileStore.get(fileId).name);
-            return;
-          }
+          if (this.fileStore.hasId(fileId)) return;
 
           var replicas = this.dht.getReplicaIds(fileId);
           var pinned = _.contains(replicas, this.uuid);
           this.fileStore.put(fileId, file.name, file.type, reader.result, pinned);
 
-          console.log('Replicating file to', replicas);
+          console.log('Replicating', fileId, 'to', replicas);
           _.each(this.connections, function(conn) {
             if (!conn.available) return;
             if (_.contains(replicas, conn.id)) {

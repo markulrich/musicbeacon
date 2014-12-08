@@ -16,7 +16,7 @@ var FileStore = (function() {
 
   FileStore.prototype = {
     generateFileId: function(buffer) {
-      return md5(buffer);
+      return SparkMD5.ArrayBuffer.hash(buffer);
     },
 
     hasId: function(id) {

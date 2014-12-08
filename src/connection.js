@@ -18,10 +18,10 @@
   };
 
 
-  function Connection(client, email, element, pubnub) {
+  function Connection(client, username, element, pubnub) {
     this.client = client;
     this.uuid = client.uuid;    // Local id
-    this.id = email;            // Target id
+    this.id = username;         // Target id
     this.element = element;     // UI handler. Messy but effective
     this.progress = element.querySelector('.progress');
     this.p2pEstablished = false;

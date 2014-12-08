@@ -41,7 +41,7 @@ var FileStore = (function() {
       if (this.hasId(id)) { // On overwrite, inherit the UI element
         fileElement = this.kvstore[id].element;
       } else {
-        fileElement = $(this.template({ email: name, status: 'pinned', fileId: id }));
+        fileElement = $(this.template({ username: name, status: 'pinned', fileId: id }));
         this.fileList.append(fileElement);
         this.fileList.animate({ marginTop: '3%' }, 700);
       }

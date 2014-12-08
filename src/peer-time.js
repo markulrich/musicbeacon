@@ -18,7 +18,6 @@ var PeerTime = (function() {
     }
 
     window.setInterval(function () {
-      console.log('SYNCING!!');
       this.syncDrift();
     }.bind(this), this.REFRESH);
   }
@@ -127,7 +126,7 @@ var PeerTime = (function() {
     },
 
     currTime: function () {
-      return new Date(new Date().getTime() + this.drift);
+      return new Date(new Date().getTime() + this.drift).getTime();
     },
 
     currDrift: function () {

@@ -9,18 +9,14 @@ var FileStore = (function() {
   'use strict';
 
   function FileStore(client) {
-    // UI elements
     this.fileList = client.fileList;
     this.template = client.selectableTemplate;
-
-    this.fileSuffix = _.map(client.uuid.split(' '), function(t) { return t.substr(0, 3); }).join('');
-    this.counter = 0;
     this.kvstore = {};
   }
 
   FileStore.prototype = {
-    generateFileId: function() {
-      return (this.counter++) + this.fileSuffix;
+    generateFileId: function(buffer) {
+      return md5(buffer);
     },
 
     hasId: function(id) {

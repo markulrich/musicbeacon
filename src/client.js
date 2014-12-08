@@ -58,7 +58,13 @@
         var reader = new FileReader();
         reader.onloadend = function(e) {
           if (reader.readyState !== FileReader.DONE) return;
-          var fileId = this.fileStore.generateFileId(file);
+
+          var fileId = this.fileStore.generateFileId(reader.result);
+          if (this.fileStore.hasId(fileId)) {
+            toastr.error('Duplicate upload of ' + this.fileStore.get(fileId).name);
+            return;
+          }
+
           var replicas = this.dht.getReplicaIds(fileId);
           var pinned = _.contains(replicas, this.uuid);
           this.fileStore.put(fileId, file.name, file.type, reader.result, pinned);

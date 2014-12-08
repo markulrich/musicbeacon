@@ -295,7 +295,7 @@
 
     createChannelCallbacks: function() {
       this.onP2PMessage = function(data) {
-        this.debug('P2P message: ', data.action);
+        //this.debug('P2P message: ', data.action);
         if (data.action === protocol.DATA) {
           this.fileStreams[data.fileId].receiveChunk(data);
         } else if (data.action === protocol.REQUEST_CHUNK) {

@@ -28,7 +28,7 @@ var PeerTime = (function() {
     TENTHS_NS_PER_MS: 10000,
     TAKE_BEST: 4,
     MOVING_WINDOW: 10,
-    EWMA_DECAY: 0.4,
+    EWMA_DECAY: 0.8,
 
     avgOfKey: function (arr, key) {
       var sum = 0, len = arr.length;
@@ -120,9 +120,7 @@ var PeerTime = (function() {
     },
 
     avgDrift: function () {
-      return _.reduce(this.drifts, function (a, b) {
-            return a + b;
-          }) / this.drifts.length;
+      return _.reduce(this.drifts, function (a, b) { return a + b; }) / this.drifts.length;
     },
 
     currTime: function () {

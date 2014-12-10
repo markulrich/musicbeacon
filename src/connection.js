@@ -267,7 +267,7 @@
           // Can't bootstrap on join because target might not have connection
           this.client.checkBootstrapComplete();
         }
-      } else if (msg.action === 'timeout') {
+      } else if (msg.action === 'timeout' ) {
         // TODO: kick out after multiple timeouts
         this.available = false;
         this.timeout = true;

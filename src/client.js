@@ -5,7 +5,7 @@
    */
 
   var MAX_FSIZE = 160; // MB - browser memory limit
-  var DEFAULT_CHANNEL = 'get-my-filez3';
+  var DEFAULT_CHANNEL = 'get-my-files4';
   var PUB_KEY = 'pub-c-24cc8449-f45e-4bdf-97b5-c97bbb6479d0';
   var SUB_KEY = 'sub-c-60fc9a74-6f61-11e4-b563-02ee2ddab7fe';
   var pubnub;
@@ -167,7 +167,7 @@
         if (this.bootstrapping || this.bootstrapped) return;
         var nodeIds = _.map(this.connections, function(conn, nodeId) { return nodeId; });
         if (nodeIds.length > 0) {
-          console.log('Setting up bootstrap');
+          // console.log('Setting up bootstrap');
           var nodeId = nodeIds[Math.floor(Math.random() * nodeIds.length)];
           this.connections[nodeId].requestBootstrap();
         }
@@ -214,15 +214,15 @@
       }.bind(this);
     },
 
-    localLogin: function(name) {
+    login: function(uuid) {
       pubnub = PUBNUB.init({
         publish_key: PUB_KEY,
         subscribe_key: SUB_KEY,
-        uuid: name,
+        uuid: uuid,
         ssl: true
       });
 
-      this.uuid = name;
+      this.uuid = uuid;
       this.peerTime = new PeerTime(pubnub);
       this.audioManager = new AudioManager(this);
       this.fileStore = new FileStore(this);
@@ -231,7 +231,7 @@
       $('.my-username').html(this.uuid);
 
       pubnub.subscribe({
-        channel: DEFAULT_CHANNEL,
+        channel: this.channel,
         heartbeat: 10,
         callback: this.handleSignal.bind(this),
         presence: this.handlePresence.bind(this)
@@ -239,9 +239,9 @@
 
       window.onbeforeunload = function() {
         pubnub.unsubscribe({
-          channel: DEFAULT_CHANNEL
+          channel: this.channel
         });
-      };
+      }.bind(this);
     },
 
     handleSignal: function(msg) {
@@ -258,6 +258,7 @@
      * DHT maintenance.
      */
     handlePresence: function(msg) {
+      console.log(msg);
       var username = msg.uuid;
       if (this.connections[username]) {
         this.connections[username].handlePresence(msg);

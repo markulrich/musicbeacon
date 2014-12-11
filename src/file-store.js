@@ -9,6 +9,7 @@ var FileStore = (function() {
   'use strict';
 
   function FileStore(client) {
+    this.client = client;
     this.fileList = client.fileList;
     this.template = client.selectableTemplate;
     this.kvstore = {};
@@ -38,6 +39,11 @@ var FileStore = (function() {
         fileElement = this.kvstore[id].element;
       } else {
         fileElement = $(this.template({ username: name, status: 'pinned', fileId: id }));
+        $(fileElement).dblclick(function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.client.broadcastPlay(id);
+        }.bind(this));
         this.fileList.append(fileElement);
         this.fileList.animate({ marginTop: '3%' }, 700);
       }

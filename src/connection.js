@@ -67,7 +67,7 @@
         return nodeId;
       }).concat(this.uuid);
       var files = _.map(this.client.fileStore.kvstore, function(f) {
-        return { fileId: f.id, fileName: f.name };
+        return { fileId: f.id, fileName: f.name, duration: f.durationSecs };
       });
       this.pubnub.publish({
         channel: this.client.channel,
@@ -114,7 +114,10 @@
       });
     },
 
-    sendFileEntry: function(fileId, fileName) {
+    sendFileEntry: function (fileId, fileName, duration) {
+      if (typeof duration !== "number") {
+        throw new Error('Duration must be a number, "' + duration + '" is not valid.');
+      }
       this.debug('Sending empty file entry ' + fileId);
       this.pubnub.publish({
         channel: this.client.channel,
@@ -122,13 +125,14 @@
           uuid: this.uuid,
           target: this.id,
           fileId: fileId,
+          duration: duration,
           fileName: fileName,
           action: protocol.FILE_ENTRY
         }
       });
     },
 
-    sendPlay: function(fileId, playTime) {
+    sendPlay: function(fileId, playTime, duration) {
       this.debug('Sending play for ' + fileId);
       this.pubnub.publish({
         channel: this.client.channel,
@@ -137,6 +141,7 @@
           target: this.id,
           fileId: fileId,
           playTime: playTime,
+          duration: duration,
           action: protocol.PLAY
         }
       });
@@ -234,18 +239,18 @@
         delete this.fileStreams[msg.fileId];
       } else if (msg.action === protocol.PLAY) {
         this.debug('Received remote play for ' + msg.fileId);
-        var duration = this.client.fileStore.get(msg.fileId).durationSecs;
         if (!this.client.fileStore.hasLocalId(msg.fileId)) {
           this.debug('Not replicated here...fetching data for ' + msg.fileId);
-          this.client.audioManager.bufferPlay(msg.fileId, msg.playTime, duration);
+          this.client.audioManager.bufferPlay(msg.fileId, msg.playTime, msg.duration);
           this.client.requestFile(msg.fileId);
         } else {
           var buffer = this.client.fileStore.get(msg.fileId).buffer;
+          var duration = this.client.fileStore.get(msg.fileId).durationSecs;
           this.client.audioManager.playFile(msg.fileId, buffer, msg.playTime, duration);
         }
       } else if (msg.action === protocol.FILE_ENTRY) {
         if (this.client.fileStore.hasId(msg.fileId)) return;
-        this.client.fileStore.put(msg.fileId, msg.fileName, msg.duration, null, null, false);
+        this.client.fileStore.put(msg.fileId, msg.fileName, null, msg.duration, null, false);
       } else if (msg.action === protocol.REQUEST_FILE) {
         // TODO: redirect if not fully loaded yet
         this.offerShare(msg.fileId, msg.pinned);

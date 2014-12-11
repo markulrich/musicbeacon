@@ -91,8 +91,6 @@ var AudioManager = (function () {
     onFileReceived: function (fileId, encodedBuffer) {
       if (fileId in this.fileIdToPlayObj) {
         this.processEncodedBuffer(fileId, encodedBuffer);
-      } else {
-        console.error('File', fileId, 'not in', this.fileIdToPlayObj)
       }
     },
 

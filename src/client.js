@@ -74,7 +74,7 @@
             if (_.contains(replicas, conn.id)) {
               conn.offerShare(fileId, true);
             } else {
-              conn.sendFileEntry(fileId, file.name);
+              conn.sendFileEntry(fileId, file.name, duration);
             }
           }.bind(this));
         }.bind(this);
@@ -104,7 +104,7 @@
           this.requestFile(fileId, false);
         }
         _.each(this.connections, function(conn) {
-          if (conn.available) conn.sendPlay(fileId, playTime);
+          if (conn.available) conn.sendPlay(fileId, playTime, duration);
         });
       }.bind(this);
       this.requestFile = function(fileId, pinned) {
@@ -172,7 +172,7 @@
         this.bootstrappedNodes = data.nodes;
         _.each(data.nodes, function(nodeId) { this.dht.addNode(nodeId); }.bind(this));
         _.each(data.files, function(f) {
-          this.fileStore.put(f.fileId, f.fileName, 0, null, null, false); // TODO need duration
+          this.fileStore.put(f.fileId, f.fileName, null, f.duration, null, false); // TODO need duration
         }.bind(this));
         this.checkBootstrapComplete();
       }.bind(this);

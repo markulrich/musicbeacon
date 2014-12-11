@@ -48,9 +48,7 @@
 
   Client.prototype = {
     createCallbacks: function() {
-      // File ops
-      this.uploadFile = function() {
-        var file = this.fileInput[0].files[0];
+      this.uploadFile = function(file) {
         if (!file) return;
 
         var mbSize = file.size / (1024 * 1024);
@@ -239,7 +237,10 @@
         return selectedFileElement.attr('file-id');
       };
       this.uploadButton.click(function() { this.fileInput.click(); }.bind(this));
-      this.fileInput.change(function() { this.uploadFile(); }.bind(this));
+      this.fileInput.change(function(e) {
+        var file = this.fileInput[0].files[0];
+        this.uploadFile(file);
+      }.bind(this));
       this.fetchButton.click(function() {
         var fileId = this.getSelectedFileId();
         if (fileId) this.requestFile(fileId, false);
@@ -258,6 +259,50 @@
         }.bind(this));
         return element;
       }.bind(this);
+
+      var draggedOver = 0;
+      $(document).on("dragenter", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        draggedOver++;
+        if (draggedOver !== 1) return;
+        $("body").append(
+          "<div class='drag-overlay fill-container'>" +
+          "     <h1>Drop to upload files</h1>" +
+          "</div>" +
+          "<div class='drag-background fill-container'>" +
+          "</div>");
+      });
+
+      $(document).on("dragleave", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        draggedOver--;
+        if (draggedOver === 0) {
+          $("body").children(".drag-background").remove();
+          $("body").children(".drag-overlay").remove();
+        }
+      });
+
+      $(document).on("dragover", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      $(document).on("drop", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        draggedOver = 0;
+        $("body").children(".drag-background").remove();
+        $("body").children(".drag-overlay").remove();
+
+        var files = e.originalEvent.dataTransfer.files;
+        _.each(files, function(f) {
+          this.uploadFile(f);
+        }.bind(this));
+      }.bind(this));
+
     },
 
     login: function(uuid) {

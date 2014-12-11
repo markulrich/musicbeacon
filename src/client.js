@@ -5,7 +5,7 @@
    */
 
   var MAX_FSIZE = 160; // MB - browser memory limit
-  var DEFAULT_CHANNEL = 'get-my-files4';
+  var DEFAULT_CHANNEL = 'get-my-files6';
   var PUB_KEY = 'pub-c-24cc8449-f45e-4bdf-97b5-c97bbb6479d0';
   var SUB_KEY = 'sub-c-60fc9a74-6f61-11e4-b563-02ee2ddab7fe';
   var pubnub;
@@ -55,6 +55,8 @@
           return;
         }
 
+        var duration = null;
+
         var reader = new FileReader();
         reader.onloadend = function(e) {
           if (reader.readyState !== FileReader.DONE) return;
@@ -64,7 +66,7 @@
 
           var replicas = this.dht.getReplicaIds(fileId);
           var pinned = _.contains(replicas, this.uuid);
-          this.fileStore.put(fileId, file.name, file.type, reader.result, pinned);
+          this.fileStore.put(fileId, file.name, file.type, duration, reader.result, pinned);
 
           console.log('Replicating', fileId, 'to', replicas);
           _.each(this.connections, function(conn) {
@@ -76,19 +78,31 @@
             }
           }.bind(this));
         }.bind(this);
-        reader.readAsArrayBuffer(file);
+
+        var tempAudio = $('<audio>');
+        var objectUrl = URL.createObjectURL(file);
+        tempAudio.on('canplaythrough', function(e) { // TODO is canplay or durationchange sufficient?
+          duration = e.currentTarget.duration;
+          URL.revokeObjectURL(objectUrl);
+          reader.readAsArrayBuffer(file);
+        });
+        tempAudio.prop("src", objectUrl);
+        window.setTimeout(function() {
+          if (duration === null) {
+            toastr.error('Sorry, could not decode music file. We support mp3, ogg, wav, and aac.');
+          }
+        }, 1000);
       }.bind(this);
 
       this.broadcastPlay = function(fileId) {
         var playTime = this.peerTime.currTime();
-
+        var duration = this.fileStore.get(fileId).duration;
         if (this.fileStore.hasLocalId(fileId)) {
-          this.audioManager.playFile(fileId, this.fileStore.get(fileId).buffer, playTime);
+          this.audioManager.playFile(fileId, this.fileStore.get(fileId).buffer, playTime, duration);
         } else {
-          this.audioManager.bufferPlay(fileId, playTime);
+          this.audioManager.bufferPlay(fileId, playTime, duration);
           this.requestFile(fileId, false);
         }
-
         _.each(this.connections, function(conn) {
           if (conn.available) conn.sendPlay(fileId, playTime);
         });
@@ -237,7 +251,7 @@
         presence: this.handlePresence.bind(this)
       });
 
-      window.onbeforeunload = function() {
+      window.onunload = window.onbeforeunload = function() {
         pubnub.unsubscribe({
           channel: this.channel
         });

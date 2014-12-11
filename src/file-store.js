@@ -32,7 +32,7 @@ var FileStore = (function() {
       return this.kvstore[id];
     },
 
-    put: function(id, name, type, buffer, pinned) {
+    put: function(id, name, type, duration, buffer, pinned) {
       var fileElement;
       if (this.hasId(id)) { // On overwrite, inherit the UI element
         fileElement = this.kvstore[id].element;
@@ -41,7 +41,7 @@ var FileStore = (function() {
         this.fileList.append(fileElement);
         this.fileList.animate({ marginTop: '3%' }, 700);
       }
-      this.kvstore[id] = new FileEntry(id, name, type, buffer, pinned, fileElement);
+      this.kvstore[id] = new FileEntry(id, name, type, duration, buffer, pinned, fileElement);
     },
 
     delete: function(id) {

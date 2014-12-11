@@ -3,8 +3,8 @@ var AudioManager = (function() {
 
   var AudioContext = (window.AudioContext || window.webkitAudioContext);
 
-  function AudioManager(client) {
-    this.peerTime = client.peerTime;
+  function AudioManager(peerTime) {
+    this.peerTime = peerTime;
     this.playBuffer = {};
     this.playing = {};
   }
@@ -23,18 +23,17 @@ var AudioManager = (function() {
     },
 
     playFile: function(fileId, encodedBuffer, playTime) {
-      var self = this;
       var source = this.audioCtx.createBufferSource();
       delete this.playBuffer[fileId];
 
       self.audioCtx.decodeAudioData(encodedBuffer, function(buffer) {
         source.buffer = buffer;
         source.connect(self.audioCtx.destination);
-        var diff = (self.peerTime.currTime() - playTime) / 1000;
+        var diff = (this.peerTime.currTime() - playTime) / 1000;
         source.start(0, diff);
         console.log('Starting playback of', fileId, 'at', diff);
         self.playing[playTime] = source;
-      });
+      }.bind(this));
     },
 
     stop: function() {

@@ -8,12 +8,13 @@
 var FileStore = (function() {
   'use strict';
 
-  function FileStore(client) {
-    // UI elements
-    this.fileList = client.fileList;
-    this.template = client.selectableTemplate;
+  var fileList = $('.file-list');
+  var fileTemplate = _.template($('#file-template').html().trim());
 
-    this.fileSuffix = _.map(client.uuid.split(' '), function(t) { return t.substr(0, 3); }).join('');
+  function FileStore(username) {
+    this.fileSuffix = _.map(username.split(' '),
+                            function(t) { return t.substr(0, 3); }
+                           ).join('');
     this.counter = 0;
     this.kvstore = {};
   }
@@ -41,9 +42,16 @@ var FileStore = (function() {
       if (this.hasId(id)) { // On overwrite, inherit the UI element
         fileElement = this.kvstore[id].element;
       } else {
-        fileElement = $(this.template({ email: name, status: 'pinned', fileId: id }));
-        this.fileList.append(fileElement);
-        this.fileList.animate({ marginTop: '3%' }, 700);
+        fileElement = $(fileTemplate({fileName: name, status: 'pinned', fileId: id }));
+
+        fileElement.click(function() {
+          var selected = this.getSelectedFileId();
+          if (selected) $(selected).removeClass('selected');
+          fileElement.addClass('selected');
+        }.bind(this));
+
+        fileList.append(fileElement);
+        fileList.animate({ marginTop: '3%' }, 700);
       }
       this.kvstore[id] = new FileEntry(id, name, type, buffer, pinned, fileElement);
     },

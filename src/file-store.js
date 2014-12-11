@@ -46,8 +46,7 @@ var FileStore = (function() {
 
     delete: function(id) {
       if (!this.hasId(id)) return;
-      var entry = this.kvstore[id];
-      entry.element.hide();
+      this.kvstore[id].hide();
       delete kvstore[entry.id];
     }
   };

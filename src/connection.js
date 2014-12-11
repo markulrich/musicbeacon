@@ -12,6 +12,7 @@
     PLAY: 'play',
     FILE_ENTRY: 'file-entry',
     REQUEST_FILE: 'req-file',
+    ABORT_FILE: 'abort-file',
     REQUEST_BOOTSTRAP: 'req-boot',
     REPLY_BOOTSTRAP: 'rep-boot',
     BOOTSTRAP_JOIN: 'boot-join'
@@ -115,7 +116,7 @@
     },
 
     sendFileEntry: function(fileId, fileName) {
-      this.debug('Sending empty file entry ' + fileId);
+      //this.debug('Sending empty file entry ' + fileId);
       this.pubnub.publish({
         channel: this.client.channel,
         message: {
@@ -124,6 +125,19 @@
           fileId: fileId,
           fileName: fileName,
           action: protocol.FILE_ENTRY
+        }
+      });
+    },
+
+    abortFile: function(fileId) {
+      //this.debug('Aborting replication of ' + fileId);
+      this.pubnub.publish({
+        channel: this.client.channel,
+        message: {
+          uuid: this.uuid,
+          target: this.id,
+          fileId: fileId,
+          action: protocol.ABORT_FILE
         }
       });
     },
@@ -247,6 +261,9 @@
       } else if (msg.action === protocol.REQUEST_FILE) {
         // TODO: redirect if not fully loaded yet
         this.offerShare(msg.fileId, msg.pinned);
+      } else if (msg.action === protocol.ABORT_FILE) {
+        // TODO: redirect if not fully loaded yet
+        this.client.fileStore.delete(msg.fileId);
       } else if (msg.action === protocol.REQUEST_BOOTSTRAP) {
         this.replyBootstrap();
       } else if (msg.action === protocol.REPLY_BOOTSTRAP) {
@@ -305,10 +322,13 @@
             this.send(this.packageChunk(data.fileId, id));
           }.bind(this));
         } else if (data.action === protocol.DONE) {
-          var t = (Date.now() - this.fileStreams[data.fileId].started) / 1000;
-          this.debug('Share of ' + data.fileId + ' took ' + t + ' seconds');
-          delete this.fileStreams[data.fileId];
+          var fileId = data.fileId;
+          var t = (Date.now() - this.fileStreams[fileId].started) / 1000;
+          this.debug('Share of ' + fileId + ' took ' + t + ' seconds');
           this.reset();
+
+          delete this.fileStreams[fileId];
+          this.client.handleUploadComplete(fileId)
         }
       }.bind(this);
     },

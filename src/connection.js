@@ -233,13 +233,14 @@
         delete this.fileStreams[msg.fileId];
       } else if (msg.action === protocol.PLAY) {
         this.debug('Received remote play for ' + msg.fileId);
+        var duration = this.client.fileStore.get(msg.fileId).duration;
         if (!this.client.fileStore.hasLocalId(msg.fileId)) {
           this.debug('Not replicated here...fetching data for ' + msg.fileId);
-          this.client.audioManager.bufferPlay(msg.fileId, msg.playTime);
+          this.client.audioManager.bufferPlay(msg.fileId, msg.playTime, duration);
           this.client.requestFile(msg.fileId);
         } else {
           var buffer = this.client.fileStore.get(msg.fileId).buffer;
-          this.client.audioManager.playFile(msg.fileId, buffer, msg.playTime);
+          this.client.audioManager.playFile(msg.fileId, buffer, msg.playTime, duration);
         }
       } else if (msg.action === protocol.FILE_ENTRY) {
         if (this.client.fileStore.hasId(msg.fileId)) return;

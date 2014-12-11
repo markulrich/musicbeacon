@@ -1,9 +1,10 @@
 var FileEntry = (function() {
   'use strict';
 
-  function FileEntry(id, name, type, buffer, pinned, element) {
+  function FileEntry(id, name, type, duration, buffer, pinned, element) {
     this.id = id;
     this.name = name;
+    this.duration = duration;   // In seconds.
     this.type = type;
     this.buffer = buffer;
     this.element = element;     // UI handler. Messy but effective

@@ -1,6 +1,7 @@
 var AudioManager = (function () {
   'use strict';
 
+  var queueElem = $("#queue").children("ul")[0];
   var AudioContext = (window.AudioContext || window.webkitAudioContext);
 
   function PlayObj(fileId, playTime, durationSecs, source) {
@@ -17,6 +18,7 @@ var AudioManager = (function () {
   }
 
   function AudioManager(client) {
+    this.fileStore = client.fileStore;
     this.peerTime = client.peerTime;
     this.fileIdToPlayObj = {};
   }
@@ -30,6 +32,7 @@ var AudioManager = (function () {
       source.connect(this.audioCtx.destination);
       var fileIdToPlayObj = this.fileIdToPlayObj;
       source.onended = function() {
+        $(queueElem).children("li").first().remove();
         delete fileIdToPlayObj[playObj.fileId];
       };
       playObj.source = source;
@@ -116,6 +119,7 @@ var AudioManager = (function () {
         return false;
       }
       this.processEncodedBuffer(fileId, encodedBuffer);
+      $(queueElem).append("<li>" + this.fileStore.get(fileId).name + "</li>");
       return true;
     },
 

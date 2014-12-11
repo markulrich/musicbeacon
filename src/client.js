@@ -333,8 +333,8 @@
 
       this.uuid = uuid;
       this.peerTime = new PeerTime(pubnub);
-      this.audioManager = new AudioManager(this);
       this.fileStore = new FileStore(this);
+      this.audioManager = new AudioManager(this);
       this.dht = new DHT(this);
 
       $('.my-username').html(this.uuid);

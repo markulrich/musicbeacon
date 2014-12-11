@@ -38,11 +38,12 @@
       }
     },
 
-    stageRemoteFile: function(fileId, fileName, fileType, pinned, nChunks) {
+    stageRemoteFile: function(fileId, fileName, fileType, duractionSecs, pinned, nChunks) {
       this.fileId = fileId;
       this.fileName = fileName;
       this.fileType = fileType;
       this.pinned = pinned;
+      this.durationSecs = duractionSecs;
       this.fileChunks = [];
       this.missingChunks = [];
       this.numRequested = 0;

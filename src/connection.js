@@ -162,6 +162,7 @@
           fileId: fileId,
           fileName: f.name,
           fileType: f.type,
+          durationSecs: f.durationSecs,
           nChunks: manager.fileChunks.length,
           pinned: pinned,
           action: protocol.OFFER
@@ -222,7 +223,7 @@
           this.cancelShare(msg.fileId);
         } else {
           var manager = this.setupFileManager();
-          manager.stageRemoteFile(msg.fileId, msg.fileName, msg.fileType, msg.pinned, msg.nChunks);
+          manager.stageRemoteFile(msg.fileId, msg.fileName, msg.fileType, msg.durationSecs, msg.pinned, msg.nChunks);
           this.fileStreams[msg.fileId] = manager;
           this.answerShare(msg.fileId);
         }
@@ -233,7 +234,7 @@
         delete this.fileStreams[msg.fileId];
       } else if (msg.action === protocol.PLAY) {
         this.debug('Received remote play for ' + msg.fileId);
-        var duration = this.client.fileStore.get(msg.fileId).duration;
+        var duration = this.client.fileStore.get(msg.fileId).durationSecs;
         if (!this.client.fileStore.hasLocalId(msg.fileId)) {
           this.debug('Not replicated here...fetching data for ' + msg.fileId);
           this.client.audioManager.bufferPlay(msg.fileId, msg.playTime, duration);
@@ -244,7 +245,7 @@
         }
       } else if (msg.action === protocol.FILE_ENTRY) {
         if (this.client.fileStore.hasId(msg.fileId)) return;
-        this.client.fileStore.put(msg.fileId, msg.fileName, null, null, false);
+        this.client.fileStore.put(msg.fileId, msg.fileName, msg.duration, null, null, false);
       } else if (msg.action === protocol.REQUEST_FILE) {
         // TODO: redirect if not fully loaded yet
         this.offerShare(msg.fileId, msg.pinned);
@@ -330,7 +331,7 @@
         var m = this.fileStreams[fileId];
         m.loadArrayBuffer(function(buffer) {
           var pinned = m.pinned || this.client.fileStore.hasLocalId(fileId);
-          this.client.fileStore.put(fileId, m.fileName, m.fileType, buffer, m.pinned);
+          this.client.fileStore.put(fileId, m.fileName, m.fileType, m.durationSecs, buffer, m.pinned);
           this.send(JSON.stringify({
             fileId: fileId,
             action: protocol.DONE

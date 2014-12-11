@@ -96,7 +96,7 @@
 
       this.broadcastPlay = function(fileId) {
         var playTime = this.peerTime.currTime();
-        var duration = this.fileStore.get(fileId).duration;
+        var duration = this.fileStore.get(fileId).durationSecs;
         if (this.fileStore.hasLocalId(fileId)) {
           this.audioManager.playFile(fileId, this.fileStore.get(fileId).buffer, playTime, duration);
         } else {
@@ -172,7 +172,7 @@
         this.bootstrappedNodes = data.nodes;
         _.each(data.nodes, function(nodeId) { this.dht.addNode(nodeId); }.bind(this));
         _.each(data.files, function(f) {
-          this.fileStore.put(f.fileId, f.fileName, null, null, false);
+          this.fileStore.put(f.fileId, f.fileName, 0, null, null, false); // TODO need duration
         }.bind(this));
         this.checkBootstrapComplete();
       }.bind(this);

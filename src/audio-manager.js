@@ -28,6 +28,10 @@ var AudioManager = (function () {
       var source = this.audioCtx.createBufferSource();
       source.buffer = playObj.buffer;
       source.connect(this.audioCtx.destination);
+      var fileIdToPlayObj = this.fileIdToPlayObj;
+      source.onended = function() {
+        delete fileIdToPlayObj[playObj.fileId];
+      };
       playObj.source = source;
     },
 
@@ -80,12 +84,17 @@ var AudioManager = (function () {
         this.resetPlayObj(playObj);
         playObj.source.start(this.audioCtx.currentTime - diff, 0);
       }
-      playObj.started = true; // TODO change to false later?
+      playObj.started = true;
     },
 
     bufferPlay: function (fileId, playTime, duration) {
+      if (fileId in this.fileIdToPlayObj) {
+        toastr.error('File already in queue.');
+        return false;
+      }
       this.fileIdToPlayObj[fileId] = new PlayObj(fileId, playTime, duration, null);
       this.adjustPlayTimes();
+      return true;
     },
 
     onFileReceived: function (fileId, encodedBuffer) {
@@ -103,8 +112,11 @@ var AudioManager = (function () {
     },
 
     playFile: function (fileId, encodedBuffer, playTime, duration) {
-      this.bufferPlay(fileId, playTime, duration);
+      if (!this.bufferPlay(fileId, playTime, duration)) {
+        return false;
+      }
       this.processEncodedBuffer(fileId, encodedBuffer);
+      return true;
     },
 
     stopAll: function () {

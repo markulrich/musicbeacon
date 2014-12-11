@@ -70,6 +70,13 @@
       var files = _.map(this.client.fileStore.kvstore, function(f) {
         return { fileId: f.id, fileName: f.name, durationSecs: f.durationSecs };
       });
+      var queue = _.map(this.client.audioManager.fileIdToPlayObj, function(playObj) {
+        return {
+          fileId: playObj.fileId,
+          playTime: playObj.playTime,
+          durationSecs: playObj.durationSecs
+        };
+      });
       this.pubnub.publish({
         channel: this.client.channel,
         message: {
@@ -77,7 +84,8 @@
           target: this.id,
           data: {
             nodes: nodes,
-            files: files
+            files: files,
+            queue: queue
           },
           action: protocol.REPLY_BOOTSTRAP
         }

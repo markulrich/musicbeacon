@@ -119,9 +119,9 @@ var AudioManager = (function () {
       return true;
     },
 
-    stopAll: function () {
-      _.each(this.fileIdToPlayObj, function (playObj) {
-        if (playObj.source !== null) {
+    stop: function () {
+      _.each(this.fileIdToPlayObj, function (playObj) { // TODO broadcast stop?
+        if (playObj.source !== null && playObj.started) {
           playObj.source.stop();
         }
       });

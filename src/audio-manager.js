@@ -3,13 +3,13 @@ var AudioManager = (function () {
 
   var AudioContext = (window.AudioContext || window.webkitAudioContext);
 
-  function PlayObj(fileId, playTime, duration, source) {
+  function PlayObj(fileId, playTime, durationSecs, source) {
     this.fileId = fileId;
     this.playTime = playTime; // To determine order.
-    if (typeof duration !== "number") {
-      throw new Error('Duration must be a number, "' + duration + '" is not valid.');
+    if (typeof durationSecs !== "number") {
+      throw new Error('Duration must be a number, "' + durationSecs + '" is not valid.');
     }
-    this.durationSecs = duration;
+    this.durationSecs = durationSecs;
     this.source = source;
     this.buffer = null;
     this.queuedPlayTime = null;    // Actual time to start depending on queue state.
@@ -87,12 +87,12 @@ var AudioManager = (function () {
       playObj.started = true;
     },
 
-    bufferPlay: function (fileId, playTime, duration) {
+    bufferPlay: function (fileId, playTime, durationSecs) {
       if (fileId in this.fileIdToPlayObj) {
         toastr.error('File already in queue.');
         return false;
       }
-      this.fileIdToPlayObj[fileId] = new PlayObj(fileId, playTime, duration, null);
+      this.fileIdToPlayObj[fileId] = new PlayObj(fileId, playTime, durationSecs, null);
       this.adjustPlayTimes();
       return true;
     },
@@ -111,8 +111,8 @@ var AudioManager = (function () {
       }.bind(this));
     },
 
-    playFile: function (fileId, encodedBuffer, playTime, duration) {
-      if (!this.bufferPlay(fileId, playTime, duration)) {
+    playFile: function (fileId, encodedBuffer, playTime, durationSecs) {
+      if (!this.bufferPlay(fileId, playTime, durationSecs)) {
         return false;
       }
       this.processEncodedBuffer(fileId, encodedBuffer);

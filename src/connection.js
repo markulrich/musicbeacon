@@ -68,7 +68,7 @@
         return nodeId;
       }).concat(this.uuid);
       var files = _.map(this.client.fileStore.kvstore, function(f) {
-        return { fileId: f.id, fileName: f.name, duration: f.durationSecs };
+        return { fileId: f.id, fileName: f.name, durationSecs: f.durationSecs };
       });
       this.pubnub.publish({
         channel: this.client.channel,
@@ -115,9 +115,9 @@
       });
     },
 
-    sendFileEntry: function (fileId, fileName, duration) {
-      if (typeof duration !== "number") {
-        throw new Error('Duration must be a number, "' + duration + '" is not valid.');
+    sendFileEntry: function (fileId, fileName, durationSecs) {
+      if (typeof durationSecs !== "number") {
+        throw new Error('Duration must be a number, "' + durationSecs + '" is not valid.');
       }
       this.debug('Sending empty file entry ' + fileId);
       this.pubnub.publish({
@@ -126,7 +126,7 @@
           uuid: this.uuid,
           target: this.id,
           fileId: fileId,
-          duration: duration,
+          durationSecs: durationSecs,
           fileName: fileName,
           action: protocol.FILE_ENTRY
         }
@@ -146,7 +146,7 @@
       });
     },
 
-    sendPlay: function(fileId, playTime, duration) {
+    sendPlay: function(fileId, playTime, durationSecs) {
       this.debug('Sending play for ' + fileId);
       this.pubnub.publish({
         channel: this.client.channel,
@@ -155,7 +155,7 @@
           target: this.id,
           fileId: fileId,
           playTime: playTime,
-          duration: duration,
+          durationSecs: durationSecs,
           action: protocol.PLAY
         }
       });
@@ -255,16 +255,16 @@
         this.debug('Received remote play for ' + msg.fileId);
         if (!this.client.fileStore.hasLocalId(msg.fileId)) {
           this.debug('Not replicated here...fetching data for ' + msg.fileId);
-          this.client.audioManager.bufferPlay(msg.fileId, msg.playTime, msg.duration);
+          this.client.audioManager.bufferPlay(msg.fileId, msg.playTime, msg.durationSecs);
           this.client.requestFile(msg.fileId);
         } else {
           var buffer = this.client.fileStore.get(msg.fileId).buffer;
-          var duration = this.client.fileStore.get(msg.fileId).durationSecs;
-          this.client.audioManager.playFile(msg.fileId, buffer, msg.playTime, duration);
+          var durationSecs = this.client.fileStore.get(msg.fileId).durationSecs;
+          this.client.audioManager.playFile(msg.fileId, buffer, msg.playTime, durationSecs);
         }
       } else if (msg.action === protocol.FILE_ENTRY) {
         if (this.client.fileStore.hasId(msg.fileId)) return;
-        this.client.fileStore.put(msg.fileId, msg.fileName, null, msg.duration, null, false);
+        this.client.fileStore.put(msg.fileId, msg.fileName, null, msg.durationSecs, null, false);
       } else if (msg.action === protocol.REQUEST_FILE) {
         // TODO: redirect if not fully loaded yet
         this.offerShare(msg.fileId, msg.pinned);

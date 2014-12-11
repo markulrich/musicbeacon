@@ -8,6 +8,8 @@
   var DEFAULT_CHANNEL = 'get-my-files6';
   var PUB_KEY = 'pub-c-24cc8449-f45e-4bdf-97b5-c97bbb6479d0';
   var SUB_KEY = 'sub-c-60fc9a74-6f61-11e4-b563-02ee2ddab7fe';
+  var UPLOAD_TIMEOUT = 5000;
+  var BOOTSTRAP_TIMEOUT = 1000;
   var pubnub;
 
   function Client() {
@@ -19,6 +21,7 @@
     this.audioManager = null;
     this.fileStore = null;
     this.dht = null;
+    this.pendingReplicas = {};
 
     this.uploadButton = $('#upload-button');
     this.fileInput = $('#upload-input');
@@ -45,6 +48,7 @@
 
   Client.prototype = {
     createCallbacks: function() {
+      // File ops
       this.uploadFile = function() {
         var file = this.fileInput[0].files[0];
         if (!file) return;
@@ -69,14 +73,14 @@
           this.fileStore.put(fileId, file.name, file.type, duration, reader.result, pinned);
 
           console.log('Replicating', fileId, 'to', replicas);
-          _.each(this.connections, function(conn) {
-            if (!conn.available) return;
-            if (_.contains(replicas, conn.id)) {
-              conn.offerShare(fileId, true);
-            } else {
-              conn.sendFileEntry(fileId, file.name, duration);
-            }
+          _.each(replicas, function(replica) {
+            if (!this.connections[replica] || !this.connections[replica].available) return;
+            this.connections[replica].offerShare(fileId, true);
           }.bind(this));
+
+          var pending = replicas.length - (pinned ? 1 : 0)
+          if (pending > 0) this.pendingReplicas[fileId] = pending;
+          this.setupCheckUpload(fileId);
         }.bind(this);
 
         var tempAudio = $('<audio>');
@@ -112,9 +116,48 @@
         replicas = _.filter(replicas, function(nodeId) {
           return nodeId !== this.uuid;
         }.bind(this));
-        // TODO: weight by best rtt (ggp exploration?)
         var replica = replicas[Math.floor(Math.random() * replicas.length)];
         this.connections[replica].requestFile(fileId, pinned);
+      }.bind(this);
+
+      // Upload 2-phase commit
+      this.checkUploadTimeout = function(fileId) {
+        var pending = this.pendingReplicas[fileId];
+        if (!pending) return;
+        _.each(this.connections, function(conn) {
+          if (fileId in conn.fileStreams) pending--;
+        }.bind(this));
+
+        // Abort, since the file will never finish replication
+        if (pending > 0) {
+          console.log('Replication of', fileId, 'timed out');
+          this.fileStore.delete(fileId);
+          _.each(this.connections, function(conn) {
+            if (!conn.available) return;
+            conn.abortFile(fileId);
+          }.bind(this));
+        }
+
+        this.setupCheckUpload();
+      }.bind(this);
+
+      this.setupCheckUpload = function(fileId) {
+        setTimeout(function() {
+          this.checkUploadTimeout(fileId);
+        }.bind(this), UPLOAD_TIMEOUT);
+      }.bind(this);
+
+      this.handleUploadComplete = function(fileId) {
+        if (this.pendingReplicas[fileId] && (--this.pendingReplicas[fileId] == 0)) {
+          delete this.pendingReplicas[fileId];
+
+          var replicas = this.dht.getReplicaIds(fileId);
+          var fileName = this.fileStore.get(fileId).name
+          _.each(this.connections, function(conn) {
+            if (!conn.available || conn.id in replicas) return;
+            conn.sendFileEntry(fileId, fileName);
+          }.bind(this));
+        }
       }.bind(this);
 
       // DHT maintenance
@@ -140,10 +183,12 @@
           }
         }
       }.bind(this);
+
       this.handleJoin = function(nodeId) {
         this.dht.addNode(nodeId);
         this.updateIndex();
       }.bind(this);
+
       this.handleLeave = function(nodeId) {
         this.dht.removeNode(nodeId);
         delete this.connections[nodeId];
@@ -191,7 +236,7 @@
       this.scheduleBootstrap = function() {
         setTimeout(function() {
           this.setupBootstrap();
-        }.bind(this), 1000);
+        }.bind(this), UPLOAD_TIMEOUT);
       }.bind(this);
 
       this.scheduleBootstrap();
@@ -260,7 +305,8 @@
 
     handleSignal: function(msg) {
       // Don't care about messages we send
-      if (msg.uuid !== this.uuid && msg.target === this.uuid &&
+      if (msg.uuid !== this.uuid &&
+          msg.target === this.uuid &&
           msg.uuid in this.connections) {
         this.connections[msg.uuid].handleSignal(msg);
       }

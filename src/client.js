@@ -5,7 +5,7 @@
    */
 
   var MAX_FSIZE = 160; // MB - browser memory limit
-  var DEFAULT_CHANNEL = 'get-my-files8';
+  var DEFAULT_CHANNEL = 'get-my-files9';
   var PUB_KEY = 'pub-c-24cc8449-f45e-4bdf-97b5-c97bbb6479d0';
   var SUB_KEY = 'sub-c-60fc9a74-6f61-11e4-b563-02ee2ddab7fe';
   var UPLOAD_TIMEOUT = 5000;

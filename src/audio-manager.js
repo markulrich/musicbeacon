@@ -32,9 +32,14 @@ var AudioManager = (function () {
       source.connect(this.audioCtx.destination);
       var fileIdToPlayObj = this.fileIdToPlayObj;
       source.onended = function() {
-        $(queueElem).children("li").first().remove();
+        var fileName = this.fileStore.get(playObj.fileId).name;
+        $(queueElem).children("li").each(function(index, child) {
+          if ($(child).text() === fileName) {
+            $(child).remove();
+          }
+        });
         delete fileIdToPlayObj[playObj.fileId];
-      };
+      }.bind(this);
       playObj.source = source;
     },
 

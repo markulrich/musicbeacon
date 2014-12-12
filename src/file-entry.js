@@ -1,9 +1,13 @@
 var FileEntry = (function() {
   'use strict';
 
-  function FileEntry(id, name, type, buffer, pinned, element) {
+  function FileEntry(id, name, type, durationSecs, buffer, pinned, element) {
+    if (typeof durationSecs !== "number") {
+      throw new Error('Duration must be a number, "' + durationSecs + '" is not valid.');
+    }
     this.id = id;
     this.name = name;
+    this.durationSecs = durationSecs;   // In seconds.
     this.type = type;
     this.buffer = buffer;
     this.element = element;     // UI handler. Messy but effective

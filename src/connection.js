@@ -68,7 +68,14 @@
         return nodeId;
       }).concat(this.uuid);
       var files = _.map(this.client.fileStore.kvstore, function(f) {
-        return { fileId: f.id, fileName: f.name };
+        return { fileId: f.id, fileName: f.name, durationSecs: f.durationSecs };
+      });
+      var queue = _.map(this.client.audioManager.fileIdToPlayObj, function(playObj) {
+        return {
+          fileId: playObj.fileId,
+          playTime: playObj.playTime,
+          durationSecs: playObj.durationSecs
+        };
       });
       this.pubnub.publish({
         channel: this.client.channel,
@@ -77,7 +84,8 @@
           target: this.id,
           data: {
             nodes: nodes,
-            files: files
+            files: files,
+            queue: queue
           },
           action: protocol.REPLY_BOOTSTRAP
         }
@@ -115,14 +123,18 @@
       });
     },
 
-    sendFileEntry: function(fileId, fileName) {
-      //this.debug('Sending empty file entry ' + fileId);
+    sendFileEntry: function (fileId, fileName, durationSecs) {
+      if (typeof durationSecs !== "number") {
+        throw new Error('Duration must be a number, "' + durationSecs + '" is not valid.');
+      }
+      this.debug('Sending empty file entry ' + fileId);
       this.pubnub.publish({
         channel: this.client.channel,
         message: {
           uuid: this.uuid,
           target: this.id,
           fileId: fileId,
+          durationSecs: durationSecs,
           fileName: fileName,
           action: protocol.FILE_ENTRY
         }
@@ -142,7 +154,7 @@
       });
     },
 
-    sendPlay: function(fileId, playTime) {
+    sendPlay: function(fileId, playTime, durationSecs) {
       this.debug('Sending play for ' + fileId);
       this.pubnub.publish({
         channel: this.client.channel,
@@ -151,6 +163,7 @@
           target: this.id,
           fileId: fileId,
           playTime: playTime,
+          durationSecs: durationSecs,
           action: protocol.PLAY
         }
       });
@@ -176,6 +189,7 @@
           fileId: fileId,
           fileName: f.name,
           fileType: f.type,
+          durationSecs: f.durationSecs,
           nChunks: manager.fileChunks.length,
           pinned: pinned,
           action: protocol.OFFER
@@ -236,7 +250,7 @@
           this.cancelShare(msg.fileId);
         } else {
           var manager = this.setupFileManager();
-          manager.stageRemoteFile(msg.fileId, msg.fileName, msg.fileType, msg.pinned, msg.nChunks);
+          manager.stageRemoteFile(msg.fileId, msg.fileName, msg.fileType, msg.durationSecs, msg.pinned, msg.nChunks);
           this.fileStreams[msg.fileId] = manager;
           this.answerShare(msg.fileId);
         }
@@ -249,15 +263,16 @@
         this.debug('Received remote play for ' + msg.fileId);
         if (!this.client.fileStore.hasLocalId(msg.fileId)) {
           this.debug('Not replicated here...fetching data for ' + msg.fileId);
-          this.client.audioManager.bufferPlay(msg.fileId, msg.playTime);
+          this.client.audioManager.bufferPlay(msg.fileId, msg.playTime, msg.durationSecs);
           this.client.requestFile(msg.fileId);
         } else {
           var buffer = this.client.fileStore.get(msg.fileId).buffer;
-          this.client.audioManager.playFile(msg.fileId, buffer, msg.playTime);
+          var durationSecs = this.client.fileStore.get(msg.fileId).durationSecs;
+          this.client.audioManager.playFile(msg.fileId, buffer, msg.playTime, durationSecs);
         }
       } else if (msg.action === protocol.FILE_ENTRY) {
         if (this.client.fileStore.hasId(msg.fileId)) return;
-        this.client.fileStore.put(msg.fileId, msg.fileName, null, null, false);
+        this.client.fileStore.put(msg.fileId, msg.fileName, null, msg.durationSecs, null, false);
       } else if (msg.action === protocol.REQUEST_FILE) {
         // TODO: redirect if not fully loaded yet
         this.offerShare(msg.fileId, msg.pinned);
@@ -349,7 +364,7 @@
         var m = this.fileStreams[fileId];
         m.loadArrayBuffer(function(buffer) {
           var pinned = m.pinned || this.client.fileStore.hasLocalId(fileId);
-          this.client.fileStore.put(fileId, m.fileName, m.fileType, buffer, m.pinned);
+          this.client.fileStore.put(fileId, m.fileName, m.fileType, m.durationSecs, buffer, m.pinned);
           this.send(JSON.stringify({
             fileId: fileId,
             action: protocol.DONE

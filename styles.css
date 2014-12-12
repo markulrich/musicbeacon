@@ -344,3 +344,30 @@ button {
     opacity: 0.7;
     background-color: teal;
 }
+
+#queue {
+    margin-top: 20px;
+    padding: 20px;
+    background-color; #f5f5f5;
+}
+
+#queue h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid darkgrey;
+}
+
+#queue ul {
+    padding: 10px;
+}
+
+#queue li {
+    background-color: #e0e0e0;
+    padding: 10px;
+    font-size: 1.25em;
+    border: 1px darkgrey solid;
+    border-radius: 2px;
+}
+
+#queue li:first-child {
+    background-color: #00ee83;
+}

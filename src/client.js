@@ -5,7 +5,7 @@
    */
 
   var MAX_FSIZE = 160; // MB - browser memory limit
-  var DEFAULT_CHANNEL = 'get-my-files1';
+  var DEFAULT_CHANNEL = 'get-my-files8';
   var PUB_KEY = 'pub-c-24cc8449-f45e-4bdf-97b5-c97bbb6479d0';
   var SUB_KEY = 'sub-c-60fc9a74-6f61-11e4-b563-02ee2ddab7fe';
   var UPLOAD_TIMEOUT = 5000;
@@ -57,6 +57,8 @@
           return;
         }
 
+        var durationSecs = null;
+
         var reader = new FileReader();
         reader.onloadend = function(e) {
           if (reader.readyState !== FileReader.DONE) return;
@@ -66,7 +68,7 @@
 
           var replicas = this.dht.getReplicaIds(fileId);
           var pinned = _.contains(replicas, this.uuid);
-          this.fileStore.put(fileId, file.name, file.type, reader.result, pinned);
+          this.fileStore.put(fileId, file.name, file.type, durationSecs, reader.result, pinned);
 
           console.log('Replicating', fileId, 'to', replicas);
           _.each(replicas, function(replica) {
@@ -78,24 +80,35 @@
           if (pending > 0) this.pendingReplicas[fileId] = pending;
           this.setupCheckUpload(fileId);
         }.bind(this);
-        reader.readAsArrayBuffer(file);
+
+        var tempAudio = $('<audio>');
+        var objectUrl = URL.createObjectURL(file);
+        tempAudio.on('canplaythrough', function(e) { // TODO is canplay or durationchange sufficient?
+          durationSecs = e.currentTarget.duration;
+          URL.revokeObjectURL(objectUrl);
+          reader.readAsArrayBuffer(file);
+        });
+        tempAudio.prop("src", objectUrl);
+        window.setTimeout(function() {
+          if (durationSecs === null) {
+            toastr.error('Sorry, could not decode music file. We support mp3, ogg, wav, and aac.');
+          }
+        }, 1000);
       }.bind(this);
 
       this.broadcastPlay = function(fileId) {
         var playTime = this.peerTime.currTime();
-
+        var durationSecs = this.fileStore.get(fileId).durationSecs;
         if (this.fileStore.hasLocalId(fileId)) {
-          this.audioManager.playFile(fileId, this.fileStore.get(fileId).buffer, playTime);
+          this.audioManager.playFile(fileId, this.fileStore.get(fileId).buffer, playTime, durationSecs);
         } else {
-          this.audioManager.bufferPlay(fileId, playTime);
+          this.audioManager.bufferPlay(fileId, playTime, durationSecs);
           this.requestFile(fileId, false);
         }
-
         _.each(this.connections, function(conn) {
-          if (conn.available) conn.sendPlay(fileId, playTime);
+          if (conn.available) conn.sendPlay(fileId, playTime, durationSecs);
         });
       }.bind(this);
-
       this.requestFile = function(fileId, pinned) {
         var replicas = this.dht.getReplicaIds(fileId);
         replicas = _.filter(replicas, function(nodeId) {
@@ -137,10 +150,11 @@
           delete this.pendingReplicas[fileId];
 
           var replicas = this.dht.getReplicaIds(fileId);
-          var fileName = this.fileStore.get(fileId).name
+          var fileEntry = this.fileStore.get(fileId);
+          var fileName = fileEntry.name;
           _.each(this.connections, function(conn) {
             if (!conn.available || conn.id in replicas) return;
-            conn.sendFileEntry(fileId, fileName);
+            conn.sendFileEntry(fileId, fileName, fileEntry.durationSecs);
           }.bind(this));
         }
       }.bind(this);
@@ -202,7 +216,11 @@
         this.bootstrappedNodes = data.nodes;
         _.each(data.nodes, function(nodeId) { this.dht.addNode(nodeId); }.bind(this));
         _.each(data.files, function(f) {
-          this.fileStore.put(f.fileId, f.fileName, null, null, false);
+          this.fileStore.put(f.fileId, f.fileName, null, f.durationSecs, null, false);
+        }.bind(this));
+        _.each(data.queue, function(queueObj) {
+          this.audioManager.bufferPlay(queueObj.fileId, queueObj.playTime, queueObj.durationSecs);
+          this.requestFile(queueObj.fileId, false);
         }.bind(this));
         this.checkBootstrapComplete();
       }.bind(this);
@@ -315,8 +333,8 @@
 
       this.uuid = uuid;
       this.peerTime = new PeerTime(pubnub);
-      this.audioManager = new AudioManager(this);
       this.fileStore = new FileStore(this);
+      this.audioManager = new AudioManager(this);
       this.dht = new DHT(this);
 
       $('.my-username').html(this.uuid);
@@ -328,7 +346,7 @@
         presence: this.handlePresence.bind(this)
       });
 
-      window.onbeforeunload = function() {
+      window.onunload = window.onbeforeunload = function() {
         pubnub.unsubscribe({
           channel: this.channel
         });
